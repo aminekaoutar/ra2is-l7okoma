@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ra2is L7okoma</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='47' fill='%23C1272D' stroke='%23FFFFFF' stroke-width='5'/%3E%3Cpath fill='%2304593B' d='M50 18 L57.64 39.48 L80.44 40.11 L62.36 54.02 L68.81 75.89 L50 63 L31.19 75.89 L37.64 54.02 L19.56 40.11 L42.36 39.48 Z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800;900&display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<!-- ================= LOBBY SCREEN ================= -->
+<section id="screen-lobby" class="screen">
+  <div class="setup-card">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 100 100" width="52" height="52" aria-hidden="true">
+          <circle cx="50" cy="50" r="47" fill="#C1272D" stroke="#FFFFFF" stroke-width="5"/>
+          <path fill="#04593B" d="M50 18 L57.64 39.48 L80.44 40.11 L62.36 54.02 L68.81 75.89 L50 63 L31.19 75.89 L37.64 54.02 L19.56 40.11 L42.36 39.48 Z"/>
+        </svg>
+      </div>
+      <h1 class="display">Ra2is L7okoma</h1>
+      <p class="tagline">صوتك... كاين</p>
+    </div>
+
+    <label class="field-label" for="myName">شكون نتا؟</label>
+    <input id="myName" class="field-input" maxlength="24" placeholder="سميتك">
+
+    <label class="field-label">عدد الجولات</label>
+    <div class="rounds-row" id="roundsRow">
+      <button type="button" data-r="3">3 جولات <small>(موضوع واحد)</small></button>
+      <button type="button" data-r="5" class="active">5 جولات <small>(موضوعين)</small></button>
+    </div>
+
+    <label class="field-label" id="topicPickerLabel">اختار موضوعين اللي بغيتي تناقش فيهم</label>
+    <p class="field-hint" id="topicPickerHint">غادي نلقاو ليك خصم اختار مواضيع مختلفة على ديالك تماما — هكاك كل واحد كيدافع على شي حاجة تهمو.</p>
+    <div class="topic-picker" id="topicPicker"></div>
+
+    <button id="joinLobbyBtn" class="btn-start" disabled>دخول للصالة</button>
+    <p class="setup-error" id="setupError" hidden></p>
+  </div>
+</section>
+
+<!-- ================= WAITING SCREEN ================= -->
+<section id="screen-waiting" class="screen" hidden>
+  <div class="setup-card waiting-card">
+    <div class="spinner" aria-hidden="true"></div>
+    <h2 class="display">كنقلبو ليك على خصم...</h2>
+    <p class="tagline">راه غادي تتوصل بلا ما تحتاج تعاود تدوز الصفحة</p>
+    <div class="picked-topics" id="pickedTopicsView"></div>
+    <button class="btn-secondary" id="cancelWaitBtn" style="margin-top:18px; padding:12px 22px; border-radius:24px; font-weight:800; cursor:pointer;">إلغاء</button>
+  </div>
+</section>
+
+<!-- ================= GAME SCREEN ================= -->
+<section id="screen-game" class="screen" hidden>
+
+  <header class="chamber-header">
+    <div class="header-inner">
+      <div class="brand-mini">
+        <svg viewBox="0 0 100 100" width="34" height="34" aria-hidden="true">
+          <circle cx="50" cy="50" r="47" fill="#C1272D" stroke="#FFFFFF" stroke-width="5"/>
+          <path fill="#04593B" d="M50 18 L57.64 39.48 L80.44 40.11 L62.36 54.02 L68.81 75.89 L50 63 L31.19 75.89 L37.64 54.02 L19.56 40.11 L42.36 39.48 Z"/>
+        </svg>
+        <div>
+          <div class="brand-mini-title display">Ra2is L7okoma</div>
+          <div class="brand-mini-sub">صوتك... كاين</div>
+        </div>
+      </div>
+
+      <div class="stepper" id="stepper">
+        <div class="step" data-phase="intro"><span class="step-dot">1</span><span class="step-label">التقديم</span></div>
+        <div class="step" data-phase="discussion"><span class="step-dot">2</span><span class="step-label">النقاش الرئيسي</span></div>
+        <div class="step" data-phase="closing"><span class="step-dot">3</span><span class="step-label">الخاتمة</span></div>
+      </div>
+
+      <div class="header-actions">
+        <button class="icon-btn" id="settingsBtn" title="الإعدادات" aria-label="الإعدادات">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.6 1z"/></svg>
+        </button>
+        <button class="leave-btn" id="leaveBtn">
+          <span>مغادرة</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="topic-row">
+    <div class="topic-chip cat-chip">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <span id="topicCategory">الفئة</span>
+    </div>
+    <div class="topics-stack">
+      <div class="topic-main">
+        <span class="topic-eyebrow">السؤال الأول</span>
+        <p class="topic-question" id="topicQuestion">راه كيتحضر السؤال...</p>
+      </div>
+      <div class="topic-main" id="secondTopicCard" hidden>
+        <span class="topic-eyebrow eyebrow-alt">السؤال الثاني</span>
+        <p class="topic-question" id="secondTopicQuestion"></p>
+      </div>
+    </div>
+    <div class="topic-chip voice-chip" id="voiceStatus">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><path d="M12 19v4"/></svg>
+      <span id="voiceStatusText">كنوصلو الصوت...</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <!-- ---- PODIUM A (green) ---- -->
+    <aside class="podium podium-a">
+      <div class="podium-head">
+        <div class="avatar avatar-a">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          <div class="reaction-zone" id="reactionZoneA"></div>
+        </div>
+        <div>
+          <div class="podium-name" id="nameA">المترشح الأحمر</div>
+          <div class="podium-you" id="statusA"><span class="dot"></span>أنت</div>
+        </div>
+      </div>
+
+      <div class="ring-wrap small" id="ringA">
+        <div class="ring-fill"></div>
+        <div class="ring-core">
+          <div class="ring-time tabnum" id="timeA">1:00</div>
+          <div class="ring-label">الوقت المتبقي</div>
+        </div>
+      </div>
+
+      <div class="cards-head">
+        <span id="cardsLeftA">5/5</span>
+        <span>كارطاتك</span>
+      </div>
+      <div class="cards-grid" id="cardsA"></div>
+      <div class="cards-note">استعمل الكارطة مرة واحدة فقط</div>
+    </aside>
+
+    <!-- ---- CENTER STAGE ---- -->
+    <div class="center-stage">
+      <div class="skyline" aria-hidden="true">
+        <svg viewBox="0 0 800 160" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#F4B45C"/>
+              <stop offset="1" stop-color="#E07B3E"/>
+            </linearGradient>
+          </defs>
+          <rect width="800" height="160" fill="url(#sky)"/>
+          <path fill="#8C5A3A" opacity=".55" d="M0 150 L40 110 L90 150 L140 100 L190 150 L260 90 L320 150 L800 150 L800 160 L0 160Z"/>
+          <path fill="#3E2A22" d="M0 160 L0 130 L30 130 L30 110 L60 110 L60 130 L90 130 L90 100 L120 100 L120 130 L150 130 L150 118 L165 100 L180 118 L180 130 L210 130 L210 108 L240 108 L240 130 L270 130 L270 60 L280 40 L290 60 L290 90 L300 90 L300 70 L310 90 L310 130 L340 130 L340 118 L355 100 L370 118 L370 130 L420 130 L420 115 L440 115 L440 130 L470 130 L470 105 L485 90 L500 105 L500 130 L560 130 L560 118 L575 100 L590 118 L590 130 L650 130 L650 112 L670 112 L670 130 L720 130 L720 120 L740 120 L740 130 L800 130 L800 160Z"/>
+        </svg>
+      </div>
+
+      <div class="discussion-banner" id="phaseBanner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        <span id="phaseBannerText">التقديم — دقيقة لكل متناظر</span>
+      </div>
+
+      <div class="podiums-illustration">
+        <div class="podium-block pa">
+          <div class="mic-tag" id="micA"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><path d="M12 19v4"/></svg><span>يتكلم الآن</span></div>
+        </div>
+        <div class="star-arch" aria-hidden="true">
+          <svg viewBox="0 0 100 100" width="70" height="70">
+            <path fill="#7A1E24" opacity=".5" d="M50 6 L58 30 L83 30 L62 45 L70 70 L50 55 L30 70 L38 45 L17 30 L42 30 Z"/>
+          </svg>
+        </div>
+        <div class="podium-block pb">
+          <div class="mic-tag muted" id="micB"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><path d="M12 19v4"/></svg><span>في الانتظار</span></div>
+        </div>
+      </div>
+
+      <div class="ring-wrap big" id="ringMain">
+        <div class="ring-fill"></div>
+        <div class="ring-core">
+          <div class="ring-time tabnum" id="timeMain">1:00</div>
+        </div>
+      </div>
+
+      <div class="urgent-bar" id="urgentBar" hidden>
+        <span>🔔 باقي <span id="urgentSeconds">30</span> ثانية</span>
+      </div>
+
+      <div class="transport" id="transport">
+        <button class="btn-primary" id="startPauseBtn">ابدأ</button>
+        <button class="btn-secondary" id="skipBtn">تخطي</button>
+        <button class="btn-ghost" id="resetTimerBtn">إعادة الوقت</button>
+      </div>
+
+      <div class="pending-bar" id="pendingBar" hidden>
+        <span id="pendingText">…</span>
+        <div class="pending-actions" id="pendingActionsResponder" hidden>
+          <button class="btn-primary" id="approveRequestBtn">موافق</button>
+          <button class="btn-ghost" id="rejectRequestBtn">رفض</button>
+        </div>
+        <div class="pending-actions" id="pendingActionsRequester" hidden>
+          <button class="btn-ghost" id="cancelRequestBtn">إلغاء الطلب</button>
+        </div>
+      </div>
+
+      <div class="fairplay-banner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6c-1.5-1.5-4-1.5-5.5 0L12 7.9 8.7 4.6c-1.5-1.5-4-1.5-5.5 0-1.5 1.5-1.5 4 0 5.5L12 18.8l8.8-8.7c1.5-1.5 1.5-4 0-5.5z"/></svg>
+        <span>ناقش الفكرة، ماشي الشخص.</span>
+      </div>
+
+      <div class="reaction-bar" id="reactionBar">
+        <button type="button" class="reaction-btn" data-emoji="👍" title="متفق">👍</button>
+        <button type="button" class="reaction-btn" data-emoji="👏" title="تصفيق">👏</button>
+        <button type="button" class="reaction-btn" data-emoji="😂" title="ضاحك">😂</button>
+        <button type="button" class="reaction-btn" data-emoji="😮" title="متفاجئ">😮</button>
+        <button type="button" class="reaction-btn" data-emoji="🤔" title="كيفكر">🤔</button>
+        <button type="button" class="reaction-btn" data-emoji="👎" title="ماشي متفق">👎</button>
+      </div>
+
+      <div class="round-result" id="roundResult" hidden>
+        <p id="roundResultText">خلصات هاد الجولة</p>
+        <button class="btn-secondary next-round-btn" id="nextRoundBtn" style="border:none;">الجولة الموالية ←</button>
+        <button class="btn-primary next-round-btn" id="showFinalBtn" hidden>شوف النتيجة</button>
+      </div>
+    </div>
+
+    <!-- ---- PODIUM B (red) ---- -->
+    <aside class="podium podium-b">
+      <div class="podium-head reverse">
+        <div class="avatar avatar-b">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          <div class="reaction-zone" id="reactionZoneB"></div>
+        </div>
+        <div>
+          <div class="podium-name" id="nameB">المترشح الأخضر</div>
+          <div class="podium-you" id="statusB"><span class="dot"></span>الخصم</div>
+        </div>
+      </div>
+
+      <div class="ring-wrap small" id="ringB">
+        <div class="ring-fill"></div>
+        <div class="ring-core">
+          <div class="ring-time tabnum" id="timeB">1:00</div>
+          <div class="ring-label">الوقت المتبقي</div>
+        </div>
+      </div>
+
+      <div class="cards-head">
+        <span id="cardsLeftB">5/5</span>
+        <span>كارطاتك</span>
+      </div>
+      <div class="cards-grid" id="cardsB"></div>
+      <div class="cards-note">استعمل الكارطة مرة واحدة فقط</div>
+    </aside>
+  </div>
+
+  <div class="log-panel" id="logPanel"></div>
+  <audio id="remoteAudio" autoplay playsinline hidden></audio>
+</section>
+
+<!-- ================= OVERLAYS ================= -->
+<div class="overlay" id="preRoundOverlay" hidden>
+  <div class="overlay-card">
+    <span class="flag-tag">قبل ما نبداو</span>
+    <h2 class="display">صافي، تلاقيتو!</h2>
+    <p>الميكرو مفتوح لبعضياكم دابا — قولو سلام وتأكدو أنكم كتسمعو بعضياكم مزيان.</p>
+    <div class="ready-row">
+      <span id="preRoundNameA" class="ready-chip">—</span>
+      <span id="preRoundNameB" class="ready-chip">—</span>
+    </div>
+    <button class="btn-start" id="readyBtn">أنا مستعد، بدا المناظرة</button>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay" hidden>
+  <div class="overlay-card">
+    <h2 class="display">قوانين الجلسة</h2>
+    <div class="rules-box" style="text-align:right;">
+      <div class="rule-line">3 مراحل، وكل وحدة فيها دور لكل متناظر: <b>التقديم</b> (1:00) ← <b>النقاش الرئيسي</b> (5:00) ← <b>الخاتمة</b> (2:00).</div>
+      <div class="rule-line"><b>⏱ زيد دقيقة:</b> كتزيد 60 ثانية لوقتك، تتستعمل فدورك نتا.</div>
+      <div class="rule-line"><b>❓ سؤال مباشر:</b> كتوقف ساعة الخصم 30 ثانية باش يجاوب.</div>
+      <div class="rule-line"><b>✋ قطع الكلمة:</b> توقيف خفيف 15 ثانية باش تقاطع الخصم وتطلب توضيح.</div>
+      <div class="rule-line"><b>🤝 خلي الكلمة:</b> كتعطي الكلمة للخصم دغيا.</div>
+      <div class="rule-line"><b>🎯 تحداه:</b> تسجل طلب برهان، من غير ما توقف الوقت.</div>
+      <div class="rule-line"><b>🎙 الصوت:</b> غادي تسمع الخصم غير ملي يكون دورو يهضر — الميكرو ديالك كيتقفل من راسو حيت ماشي دورك.</div>
+    </div>
+    <button class="btn-start" id="closeSettings">فهمت</button>
+  </div>
+</div>
+
+<div class="overlay" id="leaveOverlay" hidden>
+  <div class="overlay-card">
+    <h2 class="display">تأكيد المغادرة</h2>
+    <p>واش متأكد بغيتي تخرج من الجلسة؟ غادي تضيع كل التقدم.</p>
+    <div class="winner-row">
+      <button class="btn-secondary" id="cancelLeave">إلغاء</button>
+      <button class="btn-start" id="confirmLeave">مغادرة</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="interruptOverlay" hidden>
+  <div class="overlay-card interrupt-card">
+    <span class="flag-tag" id="interruptFrom">استجواب</span>
+    <h2 class="display" id="interruptTitle">سؤال مباشر!</h2>
+    <p id="interruptTarget">عندك وقت باش تجاوب</p>
+    <div class="interrupt-timer tabnum" id="interruptTime">0:30</div>
+    <button class="btn-start" id="interruptResume">تم الجواب — كمّل</button>
+  </div>
+</div>
+
+<div class="overlay" id="chooseSecondOverlay" hidden>
+  <div class="overlay-card choose-card">
+    <span class="flag-tag" id="chooseTimer">1:00</span>
+    <h2 class="display">السؤال الثاني ديال هاد الجولة</h2>
+
+    <div id="chooseAsChooser" hidden>
+      <p class="choose-hint">ختار وحدة من هاد الأسئلة، ولا كتب وحدة ديالك:</p>
+      <div class="choice-list" id="choiceList"></div>
+      <div class="write-own">
+        <input id="customQuestionInput" maxlength="220" placeholder="ولا اكتب السؤال ديالك هنا...">
+        <button class="btn-primary" id="submitCustomBtn">تأكيد</button>
+      </div>
+    </div>
+
+    <div id="chooseAsWaiting" hidden>
+      <p id="chooseWaitingText">فلان كيختار السؤال الثاني...</p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="finalOverlay" hidden>
+  <div class="overlay-card final-card">
+    <span class="eyebrow">المناظرة خلصات</span>
+    <h2 class="display">شكرا على المشاركة!</h2>
+    <p id="finalNamesLine" style="color:var(--muted); font-size:14px; margin:6px 0 22px;">— و —</p>
+    <button class="btn-start" id="replayBtn">مناظرة جديدة</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

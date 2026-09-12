@@ -1,0 +1,8 @@
+services:
+  ra2is-l7okoma:
+    build: .
+    image: ra2is-l7okoma:latest
+    container_name: ra2is-l7okoma
+    ports:
+      - "8080:80"
+    restart: unless-stopped

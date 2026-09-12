@@ -1,0 +1,944 @@
+<title>رئيس الحكومة</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800;900&display=swap">
+<style>
+  :root{
+    --paper:#F6F4ED;
+    --surface:#FFFFFF;
+    --surface-2:#EFEBDD;
+    --ink:#1E1B16;
+    --muted:#7C7566;
+    --line:#DDD5C2;
+    --red:#AE1F2D;
+    --red-soft:#F3E1DF;
+    --green:#04593B;
+    --green-soft:#DDEAE1;
+    --gold:#B9924A;
+    --gold-soft:#F1E7D2;
+    --shadow: rgba(30,27,22,0.10);
+    --ring-bg:#E4DEC9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#16140F;
+      --surface:#201D17;
+      --surface-2:#2A2620;
+      --ink:#F3EFE4;
+      --muted:#A79E8C;
+      --line:#3A362C;
+      --red:#E14B54;
+      --red-soft:#3B2020;
+      --green:#3AAD7E;
+      --green-soft:#1B3327;
+      --gold:#D2AC66;
+      --gold-soft:#332B1A;
+      --shadow: rgba(0,0,0,0.45);
+      --ring-bg:#332F27;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#16140F;
+    --surface:#201D17;
+    --surface-2:#2A2620;
+    --ink:#F3EFE4;
+    --muted:#A79E8C;
+    --line:#3A362C;
+    --red:#E14B54;
+    --red-soft:#3B2020;
+    --green:#3AAD7E;
+    --green-soft:#1B3327;
+    --gold:#D2AC66;
+    --gold-soft:#332B1A;
+    --shadow: rgba(0,0,0,0.45);
+    --ring-bg:#332F27;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    direction:rtl;
+    font-family:'Tajawal',"Segoe UI",Tahoma,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  .display{font-family:'Lalezar','Tajawal',sans-serif; letter-spacing:.5px;}
+  button{font-family:inherit;}
+  .tabnum{font-variant-numeric:tabular-nums;}
+
+  /* ---------- flag ribbon ---------- */
+  .flag-ribbon{height:6px; display:flex;}
+  .flag-ribbon span{flex:1;}
+  .flag-ribbon .r{background:var(--red);}
+  .flag-ribbon .w{background:var(--surface); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .flag-ribbon .g{background:var(--green);}
+
+  /* ---------- zellige divider ---------- */
+  .zellige{
+    height:14px;
+    background-image: repeating-linear-gradient(45deg, transparent 0 5px, var(--line) 5px 6px, transparent 6px 11px),
+                       repeating-linear-gradient(-45deg, transparent 0 5px, var(--line) 5px 6px, transparent 6px 11px);
+    opacity:.7;
+  }
+
+  header.top{
+    max-width:1100px; margin:0 auto; padding:22px 20px 8px;
+    display:flex; align-items:center; gap:14px; justify-content:center;
+  }
+  .emblem{width:42px; height:42px; flex:none;}
+  header.top .titles{text-align:center;}
+  header.top h1{font-size:clamp(28px,4vw,40px); color:var(--green);}
+  header.top .sub{color:var(--muted); font-size:14px; font-weight:500; letter-spacing:.3px; margin-top:2px;}
+
+  main{max-width:1100px; margin:0 auto; padding:18px 20px 60px;}
+
+  /* ================= SETUP (candidacy card) ================= */
+  .ballot{
+    max-width:600px; margin:26px auto 0;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:4px;
+    box-shadow:0 12px 30px -14px var(--shadow);
+    overflow:hidden;
+  }
+  .ballot-head{
+    padding:18px 22px; border-bottom:2px solid var(--ink);
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .ballot-head .kicker{font-size:12px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase;}
+  .ballot-head .num{font-size:12px; color:var(--muted);}
+  .ballot-body{padding:22px;}
+  .field{margin-bottom:18px;}
+  .field label{display:block; font-size:13px; font-weight:700; margin-bottom:7px; color:var(--muted);}
+  .field input{
+    width:100%; padding:12px 14px; font-size:17px; font-weight:700;
+    border:1.5px solid var(--line); border-radius:3px; background:var(--paper); color:var(--ink);
+    font-family:inherit;
+  }
+  .field.a input{border-color:var(--red); }
+  .field.a input:focus{outline:2px solid var(--red); outline-offset:1px;}
+  .field.b input{border-color:var(--green);}
+  .field.b input:focus{outline:2px solid var(--green); outline-offset:1px;}
+  .field input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  .field .dot{display:inline-block; width:9px; height:9px; border-radius:50%; margin-inline-start:6px;}
+  .dot.r{background:var(--red);} .dot.g{background:var(--green);}
+
+  .rounds-row{display:flex; gap:10px; margin-bottom:20px;}
+  .rounds-row button{
+    flex:1; padding:12px 6px; border:1.5px solid var(--line); background:var(--paper);
+    border-radius:3px; font-weight:800; font-size:15px; color:var(--ink); cursor:pointer;
+  }
+  .rounds-row button.active{border-color:var(--gold); background:var(--gold-soft); color:var(--ink);}
+
+  .rules-box{
+    background:var(--surface-2); border:1px dashed var(--line); border-radius:3px;
+    padding:14px 16px; font-size:13.5px; color:var(--muted); margin-bottom:20px;
+  }
+  .rules-box strong{color:var(--ink);}
+  .rules-box .rule-line{display:flex; gap:8px; align-items:flex-start; margin-top:6px;}
+  .rules-box .rule-line:first-of-type{margin-top:2px;}
+  .rules-box svg{flex:none; margin-top:2px;}
+
+  .start-btn{
+    width:100%; padding:16px; font-size:18px; font-weight:800; border:none; border-radius:3px;
+    background:var(--ink); color:var(--paper); cursor:pointer; letter-spacing:.3px;
+  }
+  .start-btn:hover{background:var(--green);}
+
+  /* ================= GAME ================= */
+  #screen-game{display:none;}
+  #screen-game.on{display:block;}
+  #screen-setup.off{display:none;}
+
+  .scoreboard{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:4px;
+    padding:12px 18px; margin-bottom:16px;
+  }
+  .score-side{display:flex; align-items:center; gap:10px; min-width:0;}
+  .score-side .name{font-weight:800; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:34vw;}
+  .score-side.a .name{color:var(--red);}
+  .score-side.b .name{color:var(--green);}
+  .score-pill{
+    font-size:13px; font-weight:800; padding:3px 9px; border-radius:20px;
+    background:var(--surface-2); color:var(--muted);
+  }
+  .score-side.a .score-pill{background:var(--red-soft); color:var(--red);}
+  .score-side.b .score-pill{background:var(--green-soft); color:var(--green);}
+  .round-tag{font-size:12px; color:var(--muted); font-weight:700; text-align:center; letter-spacing:.4px;}
+
+  .stepper{display:flex; gap:6px; margin-bottom:18px;}
+  .step{
+    flex:1; text-align:center; padding:8px 4px; border-radius:3px; font-size:12px; font-weight:700;
+    background:var(--surface-2); color:var(--muted); border:1px solid transparent; transition:all .2s;
+  }
+  .step.done{background:var(--surface-2); color:var(--muted); text-decoration:line-through; opacity:.6;}
+  .step.now.owner-a{background:var(--red-soft); color:var(--red); border-color:var(--red);}
+  .step.now.owner-b{background:var(--green-soft); color:var(--green); border-color:var(--green);}
+  .step.now.owner-shared{background:var(--gold-soft); color:#8a6b28; border-color:var(--gold);}
+
+  .stage{
+    display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:16px; align-items:start; margin-bottom:20px;
+  }
+  @media (max-width:820px){ .stage{grid-template-columns:1fr;} }
+
+  .podium{
+    background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px;
+    min-height:230px; display:flex; flex-direction:column; gap:10px;
+  }
+  .podium.a{border-top:4px solid var(--red);}
+  .podium.b{border-top:4px solid var(--green);}
+  .podium h3{font-size:15px; font-weight:800;}
+  .podium.a h3{color:var(--red);}
+  .podium.b h3{color:var(--green);}
+  .podium .role{font-size:11.5px; color:var(--muted); margin-top:-6px;}
+
+  .card{
+    border:1.5px solid var(--line); border-radius:3px; padding:10px 12px; cursor:pointer;
+    display:flex; align-items:center; gap:10px; background:var(--paper); font-size:13.5px; font-weight:700;
+    transition:transform .12s, box-shadow .12s; text-align:right;
+  }
+  .card:hover:not(:disabled){transform:translateY(-2px); box-shadow:0 6px 14px -8px var(--shadow);}
+  .card:disabled{opacity:.4; cursor:not-allowed; text-decoration:line-through;}
+  .podium.a .card:not(:disabled){border-color:var(--red);}
+  .podium.b .card:not(:disabled){border-color:var(--green);}
+  .card svg{flex:none;}
+  .card small{display:block; font-weight:500; color:var(--muted); margin-top:2px;}
+
+  .center-stage{display:flex; flex-direction:column; align-items:center; gap:16px;}
+
+  .topic-card{
+    width:100%; background:var(--ink); color:var(--paper); border-radius:6px;
+    padding:20px 18px; text-align:center; position:relative; overflow:hidden;
+    box-shadow:0 16px 34px -18px var(--shadow);
+  }
+  .topic-card .cat{
+    display:inline-block; font-size:12px; font-weight:800; letter-spacing:.5px;
+    background:var(--gold); color:#231a06; padding:4px 12px; border-radius:20px; margin-bottom:10px;
+  }
+  .topic-card .q{font-family:'Lalezar','Tajawal',sans-serif; font-size:clamp(19px,2.6vw,25px); line-height:1.45;}
+  .topic-card .q.flip{animation:flipin .5s ease;}
+  @keyframes flipin{
+    0%{transform:rotateX(90deg); opacity:0;}
+    100%{transform:rotateX(0deg); opacity:1;}
+  }
+  @media (prefers-reduced-motion: reduce){ .topic-card .q.flip{animation:none;} }
+
+  .draw-btn{
+    border:1.5px solid var(--gold); background:transparent; color:var(--gold); font-weight:800;
+    font-size:13px; padding:8px 16px; border-radius:20px; cursor:pointer; margin-top:4px;
+  }
+  .draw-btn:hover{background:var(--gold); color:#231a06;}
+
+  .timer-wrap{position:relative; width:210px; height:210px;}
+  .timer-ring{
+    width:210px; height:210px; border-radius:50%;
+    background: conic-gradient(var(--phase-color, var(--gold)) calc(var(--pct,100)*1%), var(--ring-bg) 0);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .3s linear;
+  }
+  .timer-ring::before{
+    content:""; position:absolute; inset:12px; border-radius:50%; background:var(--surface);
+    box-shadow: inset 0 2px 6px var(--shadow);
+  }
+  .timer-inner{position:relative; z-index:1; text-align:center;}
+  .timer-inner .time{font-size:44px; font-weight:900; letter-spacing:1px;}
+  .timer-inner .phase-label{font-size:12px; font-weight:700; color:var(--muted); margin-top:2px;}
+  .timer-ring.warn{animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{filter:brightness(1);} 50%{filter:brightness(1.25);}}
+  @media (prefers-reduced-motion: reduce){ .timer-ring.warn{animation:none;} }
+
+  .transport{display:flex; gap:10px;}
+  .transport button{
+    padding:11px 18px; border-radius:4px; border:none; font-weight:800; font-size:14px; cursor:pointer;
+  }
+  .btn-primary{background:var(--green); color:#fff;}
+  .btn-secondary{background:var(--surface-2); color:var(--ink); border:1px solid var(--line) !important;}
+  .btn-ghost{background:transparent; color:var(--muted); border:1px solid var(--line) !important;}
+  .transport button:hover{filter:brightness(1.08);}
+
+  .round-result{
+    width:100%; background:var(--surface-2); border:1px dashed var(--gold); border-radius:6px;
+    padding:16px; text-align:center;
+  }
+  .round-result p{font-weight:800; margin-bottom:10px;}
+  .winner-row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+  .winner-row button{
+    padding:10px 18px; border-radius:20px; border:1.5px solid var(--line); background:var(--surface);
+    font-weight:800; cursor:pointer; font-size:13.5px;
+  }
+  .winner-row button.wa{border-color:var(--red); color:var(--red);}
+  .winner-row button.wb{border-color:var(--green); color:var(--green);}
+  .winner-row button:hover{filter:brightness(0.97);}
+
+  .log-panel{
+    margin-top:8px; background:var(--surface); border:1px solid var(--line); border-radius:4px;
+    padding:10px 14px; max-height:150px; overflow-y:auto; font-size:12.5px; color:var(--muted);
+  }
+  .log-panel div{padding:4px 0; border-bottom:1px solid var(--line);}
+  .log-panel div:last-child{border-bottom:none;}
+  .log-panel b{color:var(--ink);}
+
+  /* ---------- overlays ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(15,13,9,.62); display:flex;
+    align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .overlay-card{
+    background:var(--surface); border-radius:8px; max-width:420px; width:100%;
+    padding:26px 24px; text-align:center; box-shadow:0 30px 60px -20px rgba(0,0,0,.5);
+  }
+  .interp-card{border-top:6px solid var(--red);}
+  .interp-card .flag-tag{font-size:12px; font-weight:800; color:var(--red); letter-spacing:.5px;}
+  .interp-card h2{font-family:'Lalezar'; font-size:28px; margin:10px 0 6px; color:var(--ink);}
+  .interp-card p{color:var(--muted); font-size:14px; margin-bottom:16px;}
+  .interp-timer{font-size:40px; font-weight:900; color:var(--red); margin-bottom:16px;}
+  .interp-card button{
+    background:var(--ink); color:var(--paper); border:none; padding:12px 26px; border-radius:24px;
+    font-weight:800; cursor:pointer; font-size:14px;
+  }
+
+  .final-card{border-top:8px solid var(--gold); max-width:460px;}
+  .final-card .eyebrow{font-size:12px; letter-spacing:1.5px; color:var(--gold); font-weight:800; text-transform:uppercase;}
+  .final-card h2{font-family:'Lalezar'; font-size:32px; margin:12px 0 4px; color:var(--green);}
+  .final-card .runner{color:var(--muted); font-size:14px; margin-bottom:18px;}
+  .final-card .tally{display:flex; justify-content:center; gap:26px; margin-bottom:22px;}
+  .final-card .tally div{text-align:center;}
+  .final-card .tally .n{font-size:30px; font-weight:900;}
+  .final-card .tally .l{font-size:12px; color:var(--muted); font-weight:700;}
+  .replay-btn{
+    background:var(--green); color:#fff; border:none; padding:13px 30px; border-radius:24px;
+    font-weight:800; cursor:pointer; font-size:14.5px;
+  }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--paper); padding:10px 20px; border-radius:24px;
+    font-size:13.5px; font-weight:700; z-index:60; box-shadow:0 10px 24px -10px rgba(0,0,0,.4);
+  }
+
+  .info-btn{
+    position:fixed; top:16px; left:16px; width:32px; height:32px; border-radius:50%;
+    border:1.5px solid var(--line); background:var(--surface); color:var(--muted);
+    font-weight:800; cursor:pointer; z-index:40; font-family:'Tajawal';
+  }
+  footer{text-align:center; color:var(--muted); font-size:12px; padding:20px 0 30px;}
+</style>
+
+<div class="flag-ribbon"><span class="r"></span><span class="w"></span><span class="g"></span></div>
+
+<button class="info-btn" id="infoBtn" title="القوانين" aria-label="القوانين">؟</button>
+
+<header class="top">
+  <svg class="emblem" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="47" fill="none" stroke="#AE1F2D" stroke-width="4"/>
+    <path fill="#04593B" d="M50 14 L58 39 L85 39 L63 55 L71 80 L50 64 L29 80 L37 55 L15 39 L42 39 Z"/>
+  </svg>
+  <div class="titles">
+    <h1 class="display">رئيس الحكومة</h1>
+    <div class="sub">لعبة الاستجواب البرلماني — مناظرة على القضايا الوطنية</div>
+  </div>
+</header>
+
+<div class="zellige"></div>
+
+<main>
+
+  <!-- ============ SETUP SCREEN ============ -->
+  <section id="screen-setup">
+    <div class="ballot">
+      <div class="ballot-head">
+        <span class="kicker">بطاقة الترشح</span>
+        <span class="num">جلسة استجواب رقم <span id="sessionNo">1</span></span>
+      </div>
+      <div class="ballot-body">
+        <div class="field a">
+          <label>اسم المترشح الأول <span class="dot r"></span></label>
+          <input id="teamAName" type="text" maxlength="24" placeholder="مثلا: حزب الأصالة" value="المترشح الأحمر">
+        </div>
+        <div class="field b">
+          <label>اسم المترشح الثاني <span class="dot g"></span></label>
+          <input id="teamBName" type="text" maxlength="24" placeholder="مثلا: حزب التقدم" value="المترشح الأخضر">
+        </div>
+
+        <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:var(--muted);">عدد جولات الاستجواب</label>
+        <div class="rounds-row" id="roundsRow">
+          <button data-r="1">جولة واحدة</button>
+          <button data-r="3" class="active">3 جولات</button>
+          <button data-r="5">5 جولات</button>
+        </div>
+
+        <div class="rules-box">
+          <strong>نظام الجلسة:</strong>
+          <div class="rule-line">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span>كلمة افتتاحية 1:00 لكل مترشح، جولة نقاش مباشر 5:00 مشتركة، ثم كلمة ختامية 2:00 لكل مترشح.</span>
+          </div>
+          <div class="rule-line">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 3l-9 9h6l-1 9 9-9h-6z"/></svg>
+            <span>كل مترشح عندو بطاقة <b>"دقيقة إضافية"</b> وبطاقة <b>"استجواب مباشر"</b> — كل وحدة تتستعمل مرة وحدة فكل اللعبة.</span>
+          </div>
+        </div>
+
+        <button class="start-btn" id="startBtn">افتتاح الجلسة</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <section id="screen-game">
+
+    <div class="scoreboard">
+      <div class="score-side a">
+        <span class="name" id="scoreNameA">المترشح الأحمر</span>
+        <span class="score-pill" id="scorePillA">0 أصوات</span>
+      </div>
+      <div class="round-tag">الجولة <span id="roundNow">1</span> / <span id="roundTotal">3</span></div>
+      <div class="score-side b" style="flex-direction:row-reverse;">
+        <span class="name" id="scoreNameB">المترشح الأخضر</span>
+        <span class="score-pill" id="scorePillB">0 أصوات</span>
+      </div>
+    </div>
+
+    <div class="stepper" id="stepper"></div>
+
+    <div class="stage">
+      <div class="podium a" id="podiumA">
+        <h3 id="podiumAName">المترشح الأحمر</h3>
+        <div class="role">صاحب المداخلة الحمراء</div>
+        <button class="card" id="cardExtraA">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M18 3l2 2"/></svg>
+          <span>دقيقة إضافية<small>زيد 60 ثانية لوقتك</small></span>
+        </button>
+        <button class="card" id="cardSabA">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M4 12h11"/><path d="M11 6l6 6-6 6"/><circle cx="19" cy="12" r="2"/></svg>
+          <span>استجواب مباشر<small>وقّف الخصم واطرح سؤال</small></span>
+        </button>
+      </div>
+
+      <div class="center-stage">
+        <div class="topic-card">
+          <span class="cat" id="topicCat">القضية المطروحة</span>
+          <div class="q" id="topicQ">فبساطة… ضغط على "اسحب موضوع" باش تبدا الجلسة</div>
+          <div><button class="draw-btn" id="drawBtn">🎲 اسحب موضوع من الصندوق</button></div>
+        </div>
+
+        <div class="timer-wrap">
+          <div class="timer-ring" id="timerRing">
+            <div class="timer-inner">
+              <div class="time tabnum" id="timeDisplay">1:00</div>
+              <div class="phase-label" id="phaseLabel">الكلمة الافتتاحية</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button class="btn-primary" id="startPauseBtn">ابدأ</button>
+          <button class="btn-secondary" id="skipBtn">تخطي المرحلة</button>
+          <button class="btn-ghost" id="resetBtn">إعادة الوقت</button>
+        </div>
+      </div>
+
+      <div class="podium b" id="podiumB">
+        <h3 id="podiumBName">المترشح الأخضر</h3>
+        <div class="role">صاحب المداخلة الخضراء</div>
+        <button class="card" id="cardExtraB">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M18 3l2 2"/></svg>
+          <span>دقيقة إضافية<small>زيد 60 ثانية لوقتك</small></span>
+        </button>
+        <button class="card" id="cardSabB">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M20 12H9"/><path d="M13 6l-6 6 6 6"/><circle cx="5" cy="12" r="2"/></svg>
+          <span>استجواب مباشر<small>وقّف الخصم واطرح سؤال</small></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="round-result" id="roundResult" style="display:none;">
+      <p>شكون قنع اللجنة فهاد الجولة؟</p>
+      <div class="winner-row">
+        <button class="wa" id="winA">فاز المترشح الأحمر</button>
+        <button id="winTie">تعادل</button>
+        <button class="wb" id="winB">فاز المترشح الأخضر</button>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn-secondary" id="nextRoundBtn" style="display:none; padding:10px 20px; border-radius:20px; font-weight:800; cursor:pointer;">الجولة الموالية →</button>
+        <button class="btn-primary" id="showFinalBtn" style="display:none; padding:10px 20px; border-radius:20px; font-weight:800; cursor:pointer; border:none;">إعلان النتيجة النهائية</button>
+      </div>
+    </div>
+
+    <div class="log-panel" id="logPanel"></div>
+  </section>
+
+</main>
+
+<footer>لعبة "رئيس الحكومة" — مناظرة تدريبية بالدارجة المغربية · ألوان العلم: الأبيض، الأحمر، الأخضر</footer>
+
+<!-- overlays -->
+<div class="overlay" id="infoOverlay" hidden>
+  <div class="overlay-card">
+    <h2 class="display" style="font-size:24px;margin-bottom:12px;">قوانين الجلسة</h2>
+    <p style="text-align:right;font-size:14px;color:var(--muted);line-height:1.9;">
+      • كل جولة فيها: كلمة افتتاحية (1:00) لكل مترشح، جولة نقاش مباشر (5:00) مشتركة، وكلمة ختامية (2:00) لكل مترشح.<br>
+      • بطاقة <b style="color:var(--ink)">دقيقة إضافية</b>: كتزيد 60 ثانية للمترشح لي كيهضر دابا. كتستعمل مرة وحدة فكل اللعبة.<br>
+      • بطاقة <b style="color:var(--ink)">استجواب مباشر</b>: كتوقف ساعة الخصم وكتعطيه 30 ثانية باش يجاوب على سؤال مباشر. ما تنستعملش على راسك، غير على الخصم. كتستعمل مرة وحدة.<br>
+      • من بعد كل جولة، اللجنة (الجمهور ولا الحكم) كيقرر شكون قنع أكثر.
+    </p>
+    <button id="closeInfo" style="margin-top:16px;background:var(--ink);color:var(--paper);border:none;padding:10px 22px;border-radius:20px;font-weight:800;cursor:pointer;">فهمت</button>
+  </div>
+</div>
+
+<div class="overlay" id="sabOverlay" hidden>
+  <div class="overlay-card interp-card">
+    <span class="flag-tag" id="sabFrom">استجواب من المترشح الأحمر</span>
+    <h2>استجواب مباشر!</h2>
+    <p id="sabTarget">المترشح الأخضر، عندك 30 ثانية باش تجاوب على السؤال المباشر</p>
+    <div class="interp-timer tabnum" id="sabTime">0:30</div>
+    <button id="sabResume">تم الجواب — كمّل الوقت</button>
+  </div>
+</div>
+
+<div class="overlay" id="finalOverlay" hidden>
+  <div class="overlay-card final-card">
+    <span class="eyebrow">النتيجة النهائية</span>
+    <h2 id="finalWinner">رئيس الحكومة الجديد</h2>
+    <div class="runner" id="finalRunner"></div>
+    <div class="tally">
+      <div><div class="n tabnum" id="finalA" style="color:var(--red);">0</div><div class="l" id="finalNameA">—</div></div>
+      <div><div class="n tabnum" id="finalB" style="color:var(--green);">0</div><div class="l" id="finalNameB">—</div></div>
+    </div>
+    <button class="replay-btn" id="replayBtn">جلسة جديدة</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TOPICS = [
+    {cat:"التعليم", q:"التعليم العمومي فالمغرب: أزمة وسائل ولا أزمة منظومة؟"},
+    {cat:"الصحة", q:"التغطية الصحية الشاملة: حلم قريب ولا بعيد المنال؟"},
+    {cat:"الشغل", q:"البطالة فصفوف الشباب المتعلم: شكون المسؤول الحقيقي؟"},
+    {cat:"السكن", q:"برامج السكن الاجتماعي: كتحل المشكل ولا كتبيع الوهم؟"},
+    {cat:"الماء", q:"خصاص الماء بالمغرب: كارثة مناخية ولا سوء تدبير؟"},
+    {cat:"الفلاحة", q:"مخطط المغرب الأخضر: نجاح حقيقي ولا نجاح فالأرقام غير؟"},
+    {cat:"الرقمنة", q:"رقمنة الإدارة المغربية: تسهيل ولا تعقيد جديد؟"},
+    {cat:"النقل", q:"النقل العمومي فالمدن الكبرى: خدمة ديال الجميع ولا مشكل يومي؟"},
+    {cat:"الطاقة", q:"الطاقات المتجددة: المغرب قادر يكون قطب عالمي؟"},
+    {cat:"هجرة الأدمغة", q:"هجرة الكفاءات المغربية: خسارة لازم نوقفوها ولا حق طبيعي؟"},
+    {cat:"السياحة", q:"السياحة كتفيد الساكنة المحلية ولا غير المستثمرين الكبار؟"},
+    {cat:"حقوق المرأة", q:"المساواة فالإرث بين الرجل والمرأة: قرار سياسي ولا قرار مجتمعي؟"},
+    {cat:"الرياضة", q:"كأس العالم 2030: فرصة تنموية حقيقية ولا مصاريف بلا فائدة؟"},
+    {cat:"الفساد", q:"محاربة الفساد فالمغرب: القوانين كافية ولا العقلية هي المشكل؟"},
+    {cat:"الجهوية", q:"الجهوية المتقدمة: تفويت السلطة الحقيقي ولا مركزية مقنعة؟"},
+    {cat:"الأمن الغذائي", q:"المغرب قادر يوصل للاكتفاء الذاتي الغذائي فالعشرية الجاية؟"},
+    {cat:"التعليم العالي", q:"الجامعة المغربية كتخرج طلبة جاهزين لسوق الشغل ولا لا؟"},
+    {cat:"البيئة", q:"التنمية الصناعية خاصها تكون على حساب البيئة؟"},
+    {cat:"البنية التحتية", q:"القطار السريع: أولوية وطنية ولا رفاهية فوق طاقة البلاد؟"},
+    {cat:"الشباب والسياسة", q:"غياب الشباب على العمل السياسي: مسؤولية الشباب ولا الأحزاب؟"},
+    {cat:"الضرائب", q:"الضريبة على الثروات الكبرى: عدالة جبائية ولا تنفير للاستثمار؟"},
+    {cat:"الأمن الرقمي", q:"حماية المعطيات الشخصية بالمغرب: قوانين كافية ولا لسع فيها خصاص؟"},
+    {cat:"اللغة والتعليم", q:"أي لغة خاصها تسود فالتدريس: العربية ولا الفرنسية ولا الأمازيغية؟"},
+    {cat:"الإعلام", q:"الإعلام المغربي: كيعكس الواقع ولا كيخدم أجندات معينة؟"},
+    {cat:"العدالة", q:"بطء المسطرة القضائية: مشكل فالقوانين ولا فطريقة التطبيق؟"},
+    {cat:"المحروقات", q:"تحرير أثمنة المحروقات: قرار اقتصادي صائب ولا خطأ فحق المواطن؟"},
+    {cat:"التعمير", q:"البناء العشوائي بالمدن: نتيجة الفقر ولا نتيجة غياب المراقبة؟"},
+    {cat:"الحماية الاجتماعية", q:"ورش الحماية الاجتماعية: كايوصل لكل المغاربة ولا مازال ناقص؟"},
+    {cat:"مدونة الأسرة", q:"تعديل مدونة الأسرة: كافي لضمان حقوق الجميع ولا خاصو مراجعة أعمق؟"},
+    {cat:"اللامركزية", q:"تقريب الإدارة من المواطن: تحقق فعلا ولا مازال شعار؟"}
+  ];
+
+  function phaseTemplate(){
+    return [
+      {id:"introA", label:"الكلمة الافتتاحية", who:"A", owner:"a", duration:60},
+      {id:"introB", label:"الكلمة الافتتاحية", who:"B", owner:"b", duration:60},
+      {id:"middle", label:"جولة النقاش المباشر", who:null, owner:"shared", duration:300},
+      {id:"closeA", label:"الكلمة الختامية", who:"A", owner:"a", duration:120},
+      {id:"closeB", label:"الكلمة الختامية", who:"B", owner:"b", duration:120}
+    ];
+  }
+
+  var state = {
+    teamA:"المترشح الأحمر", teamB:"المترشح الأخضر",
+    totalRounds:3, round:1,
+    scoreA:0, scoreB:0,
+    usedTopics:[],
+    phases: phaseTemplate(),
+    phaseIndex:0,
+    remaining:60,
+    running:false,
+    timerHandle:null,
+    cards:{ a:{extra:false, sab:false}, b:{extra:false, sab:false} },
+    sabWasRunning:false,
+    sabHandle:null,
+    topicDrawn:false
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ---------- audio beep (no external asset) ---------- */
+  var actx = null;
+  function beep(freq, dur){
+    try{
+      if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = "sine"; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.15, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime + dur);
+    }catch(e){}
+  }
+
+  function toast(msg){
+    var t = $("toast");
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(t._h);
+    t._h = setTimeout(function(){ t.hidden = true; }, 2200);
+  }
+
+  function log(html){
+    var p = $("logPanel");
+    var d = document.createElement("div");
+    d.innerHTML = html;
+    p.insertBefore(d, p.firstChild);
+  }
+
+  function fmt(s){
+    var m = Math.floor(s/60), r = s%60;
+    return m + ":" + (r<10 ? "0"+r : r);
+  }
+
+  /* ---------- SETUP ---------- */
+  $("roundsRow").addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if(!b) return;
+    Array.prototype.forEach.call($("roundsRow").children, function(x){ x.classList.remove("active"); });
+    b.classList.add("active");
+    state.totalRounds = parseInt(b.dataset.r, 10);
+  });
+
+  $("startBtn").addEventListener("click", function(){
+    state.teamA = $("teamAName").value.trim() || "المترشح الأحمر";
+    state.teamB = $("teamBName").value.trim() || "المترشح الأخضر";
+    state.round = 1;
+    state.scoreA = 0; state.scoreB = 0;
+    state.usedTopics = [];
+    state.cards = { a:{extra:false, sab:false}, b:{extra:false, sab:false} };
+
+    $("podiumAName").textContent = state.teamA;
+    $("podiumBName").textContent = state.teamB;
+    $("scoreNameA").textContent = state.teamA;
+    $("scoreNameB").textContent = state.teamB;
+    $("roundTotal").textContent = state.totalRounds;
+
+    document.getElementById("screen-setup").classList.add("off");
+    document.getElementById("screen-game").classList.add("on");
+
+    setupRound(true);
+    updateScoreboard();
+    renderCards();
+    log("<b>الجلسة بدات</b> — " + state.teamA + " ضد " + state.teamB);
+  });
+
+  /* ---------- ROUND SETUP ---------- */
+  function setupRound(freshCards){
+    state.phases = phaseTemplate();
+    state.phaseIndex = 0;
+    state.remaining = state.phases[0].duration;
+    state.running = false;
+    state.topicDrawn = false;
+    stopTicking();
+    $("roundNow").textContent = state.round;
+    $("roundResult").style.display = "none";
+    $("nextRoundBtn").style.display = "none";
+    $("showFinalBtn").style.display = "none";
+    $("topicCat").textContent = "القضية المطروحة";
+    $("topicQ").textContent = "ضغط على \"اسحب موضوع\" باش تبدا الجولة " + state.round;
+    $("drawBtn").disabled = false;
+    $("drawBtn").style.display = "inline-block";
+    renderStepper();
+    renderPhase();
+  }
+
+  /* ---------- TOPIC DRAW ---------- */
+  $("drawBtn").addEventListener("click", function(){
+    if(state.usedTopics.length >= TOPICS.length) state.usedTopics = [];
+    var available = TOPICS.map(function(t,i){return i;}).filter(function(i){ return state.usedTopics.indexOf(i) === -1; });
+    var idx = available[Math.floor(Math.random()*available.length)];
+    state.usedTopics.push(idx);
+    var topic = TOPICS[idx];
+    var qEl = $("topicQ");
+    qEl.classList.remove("flip");
+    void qEl.offsetWidth;
+    $("topicCat").textContent = topic.cat;
+    qEl.textContent = topic.q;
+    qEl.classList.add("flip");
+    state.topicDrawn = true;
+    $("drawBtn").textContent = "🎲 اسحب موضوع آخر";
+    log("<b>الموضوع:</b> [" + topic.cat + "] " + topic.q);
+  });
+
+  /* ---------- STEPPER ---------- */
+  function renderStepper(){
+    var wrap = $("stepper");
+    wrap.innerHTML = "";
+    state.phases.forEach(function(p, i){
+      var d = document.createElement("div");
+      d.className = "step";
+      if(i < state.phaseIndex) d.className += " done";
+      else if(i === state.phaseIndex) d.className += " now owner-" + p.owner;
+      var name = p.owner === "a" ? state.teamA : (p.owner === "b" ? state.teamB : "");
+      d.textContent = p.label + (name ? " · " + name : "");
+      wrap.appendChild(d);
+    });
+  }
+
+  /* ---------- PHASE / TIMER ---------- */
+  function currentPhase(){ return state.phases[state.phaseIndex]; }
+
+  function phaseColor(owner){
+    return owner === "a" ? "var(--red)" : (owner === "b" ? "var(--green)" : "var(--gold)");
+  }
+
+  function renderPhase(){
+    var p = currentPhase();
+    $("phaseLabel").textContent = p.label + (p.who ? " — " + (p.who === "A" ? state.teamA : state.teamB) : "");
+    $("timeDisplay").textContent = fmt(state.remaining);
+    $("timerRing").style.setProperty("--phase-color", phaseColor(p.owner));
+    updateRingPct();
+    $("startPauseBtn").textContent = state.running ? "وقف" : "ابدأ";
+    renderStepper();
+    renderCards();
+  }
+
+  function updateRingPct(){
+    var p = currentPhase();
+    var pct = Math.max(0, (state.remaining / p.duration) * 100);
+    $("timerRing").style.setProperty("--pct", pct);
+    $("timerRing").classList.toggle("warn", state.remaining <= 10 && state.remaining > 0 && state.running);
+  }
+
+  function stopTicking(){
+    if(state.timerHandle){ clearInterval(state.timerHandle); state.timerHandle = null; }
+    state.running = false;
+  }
+
+  $("startPauseBtn").addEventListener("click", function(){
+    if(state.running){
+      stopTicking();
+      $("startPauseBtn").textContent = "ابدأ";
+    } else {
+      state.running = true;
+      $("startPauseBtn").textContent = "وقف";
+      state.timerHandle = setInterval(tick, 1000);
+    }
+    renderCards();
+  });
+
+  function tick(){
+    state.remaining--;
+    if(state.remaining <= 0){
+      state.remaining = 0;
+      $("timeDisplay").textContent = "0:00";
+      updateRingPct();
+      stopTicking();
+      beep(220, 0.5);
+      log("انتهى وقت: <b>" + currentPhase().label + "</b>");
+      setTimeout(advancePhase, 900);
+      return;
+    }
+    $("timeDisplay").textContent = fmt(state.remaining);
+    updateRingPct();
+  }
+
+  function advancePhase(){
+    if(state.phaseIndex < state.phases.length - 1){
+      state.phaseIndex++;
+      state.remaining = currentPhase().duration;
+      $("startPauseBtn").textContent = "ابدأ";
+      renderPhase();
+    } else {
+      endRound();
+    }
+  }
+
+  $("skipBtn").addEventListener("click", function(){
+    stopTicking();
+    if(state.phaseIndex < state.phases.length - 1){
+      advancePhase();
+    } else {
+      endRound();
+    }
+  });
+
+  $("resetBtn").addEventListener("click", function(){
+    stopTicking();
+    state.remaining = currentPhase().duration;
+    renderPhase();
+  });
+
+  /* ---------- CARDS ---------- */
+  function otherTeam(t){ return t === "a" ? "b" : "a"; }
+
+  function extraEnabled(team){
+    var p = currentPhase();
+    if(state.cards[team].extra) return false;
+    return p.owner === team || p.owner === "shared";
+  }
+  function sabEnabled(team){
+    var p = currentPhase();
+    if(state.cards[team].sab) return false;
+    if(!state.running) return false;
+    return p.owner === otherTeam(team) || p.owner === "shared";
+  }
+
+  function renderCards(){
+    var map = {a:["cardExtraA","cardSabA"], b:["cardExtraB","cardSabB"]};
+    ["a","b"].forEach(function(team){
+      var extraBtn = $(map[team][0]), sabBtn = $(map[team][1]);
+      extraBtn.disabled = !extraEnabled(team) || state.cards[team].extra;
+      if(state.cards[team].extra) extraBtn.disabled = true;
+      sabBtn.disabled = !sabEnabled(team) || state.cards[team].sab;
+      if(state.cards[team].sab) sabBtn.disabled = true;
+    });
+  }
+
+  function useExtra(team){
+    if(!extraEnabled(team) || state.cards[team].extra) return;
+    state.cards[team].extra = true;
+    state.remaining += 60;
+    $("timeDisplay").textContent = fmt(state.remaining);
+    updateRingPct();
+    var name = team === "a" ? state.teamA : state.teamB;
+    toast("+ 60 ثانية لـ " + name);
+    log("🕐 <b>" + name + "</b> استعمل بطاقة الدقيقة الإضافية");
+    renderCards();
+  }
+
+  function useSab(team){
+    if(!sabEnabled(team) || state.cards[team].sab) return;
+    state.cards[team].sab = true;
+    renderCards();
+    state.sabWasRunning = state.running;
+    stopTicking();
+    var from = team === "a" ? state.teamA : state.teamB;
+    var target = otherTeam(team) === "a" ? state.teamA : state.teamB;
+    $("sabFrom").textContent = "استجواب من " + from;
+    $("sabTarget").textContent = target + "، عندك 30 ثانية باش تجاوب على السؤال المباشر";
+    var sabRemain = 30;
+    $("sabTime").textContent = fmt(sabRemain);
+    $("sabOverlay").hidden = false;
+    beep(660, 0.25);
+    log("🎯 <b>" + from + "</b> طلب استجواب مباشر ضد " + target);
+    state.sabHandle = setInterval(function(){
+      sabRemain--;
+      if(sabRemain <= 0){
+        $("sabTime").textContent = "0:00";
+        clearInterval(state.sabHandle);
+        closeSab();
+        return;
+      }
+      $("sabTime").textContent = fmt(sabRemain);
+    }, 1000);
+  }
+
+  function closeSab(){
+    clearInterval(state.sabHandle);
+    $("sabOverlay").hidden = true;
+    if(state.sabWasRunning){
+      state.running = true;
+      $("startPauseBtn").textContent = "وقف";
+      state.timerHandle = setInterval(tick, 1000);
+    }
+  }
+  $("sabResume").addEventListener("click", closeSab);
+
+  $("cardExtraA").addEventListener("click", function(){ useExtra("a"); });
+  $("cardExtraB").addEventListener("click", function(){ useExtra("b"); });
+  $("cardSabA").addEventListener("click", function(){ useSab("a"); });
+  $("cardSabB").addEventListener("click", function(){ useSab("b"); });
+
+  /* ---------- ROUND END / SCORING ---------- */
+  function endRound(){
+    renderStepper();
+    $("roundResult").style.display = "block";
+  }
+
+  function updateScoreboard(){
+    $("scorePillA").textContent = state.scoreA + " أصوات";
+    $("scorePillB").textContent = state.scoreB + " أصوات";
+  }
+
+  function afterWinnerChosen(){
+    $("winA").style.display = "none";
+    $("winB").style.display = "none";
+    $("winTie").style.display = "none";
+    if(state.round < state.totalRounds){
+      $("nextRoundBtn").style.display = "inline-block";
+    } else {
+      $("showFinalBtn").style.display = "inline-block";
+    }
+  }
+
+  $("winA").addEventListener("click", function(){
+    state.scoreA++; updateScoreboard();
+    log("🏅 اللجنة قنعات بـ <b>" + state.teamA + "</b> فهاد الجولة");
+    afterWinnerChosen();
+  });
+  $("winB").addEventListener("click", function(){
+    state.scoreB++; updateScoreboard();
+    log("🏅 اللجنة قنعات بـ <b>" + state.teamB + "</b> فهاد الجولة");
+    afterWinnerChosen();
+  });
+  $("winTie").addEventListener("click", function(){
+    log("⚖️ تعادل فهاد الجولة");
+    afterWinnerChosen();
+  });
+
+  $("nextRoundBtn").addEventListener("click", function(){
+    state.round++;
+    $("winA").style.display = "inline-block";
+    $("winB").style.display = "inline-block";
+    $("winTie").style.display = "inline-block";
+    setupRound(false);
+  });
+
+  $("showFinalBtn").addEventListener("click", function(){
+    var winnerName, isTie = state.scoreA === state.scoreB;
+    if(isTie){
+      $("finalWinner").textContent = "تعادل تام!";
+      $("finalRunner").textContent = "الفريقين قنعو اللجنة بنفس القدر";
+    } else {
+      winnerName = state.scoreA > state.scoreB ? state.teamA : state.teamB;
+      $("finalWinner").textContent = winnerName + " — رئيس الحكومة الجديد";
+      $("finalRunner").textContent = "بعد " + state.totalRounds + " جولات من الاستجواب المباشر";
+    }
+    $("finalNameA").textContent = state.teamA;
+    $("finalNameB").textContent = state.teamB;
+    $("finalA").textContent = state.scoreA;
+    $("finalB").textContent = state.scoreB;
+    $("finalOverlay").hidden = false;
+  });
+
+  $("replayBtn").addEventListener("click", function(){
+    $("finalOverlay").hidden = true;
+    document.getElementById("screen-game").classList.remove("on");
+    document.getElementById("screen-setup").classList.remove("off");
+    $("winA").style.display = "inline-block";
+    $("winB").style.display = "inline-block";
+    $("winTie").style.display = "inline-block";
+    $("logPanel").innerHTML = "";
+  });
+
+  /* ---------- info overlay ---------- */
+  $("infoBtn").addEventListener("click", function(){ $("infoOverlay").hidden = false; });
+  $("closeInfo").addEventListener("click", function(){ $("infoOverlay").hidden = true; });
+
+  /* ---------- init ---------- */
+  renderCards();
+})();
+</script>
