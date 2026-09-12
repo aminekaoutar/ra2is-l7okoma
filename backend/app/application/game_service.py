@@ -199,15 +199,60 @@ class GameService:
         await self._save_and_broadcast(game)
         return self.state(game)
 
-    def register_reaction(self, game_id: str, slot: PlayerSlot, emoji: str) -> None:
+    async def cast_vote(self, game_id: str, audience_id: str, winner: PlayerSlot) -> dict:
+        game = self._get(game_id)
+        rules.cast_vote(game, audience_id, winner)
+        game.add_log(f"🗳️ صوت جديد لـ {game.player(winner).name}")
+        await self._save_and_broadcast(game)
+        return self.state(game)
+
+    async def submit_rematch_topics(self, game_id: str, slot: PlayerSlot, topics: list[str]) -> Optional[str]:
+        """Both debaters independently pick fresh topics for a rematch — no
+        lobby, no re-matching with a stranger, same two people again. Once
+        both have submitted, a brand new game is created for them and its id
+        is stashed on the old (finished) game so late joiners can follow."""
+        game = self._get(game_id)
+        rules.record_rematch_pick(game, slot, tuple(topics))
+        game.add_log(f"🔁 {game.player(slot).name} اختار مواضيع لمناظرة جديدة")
+
+        if not rules.rematch_ready(game):
+            await self._save_and_broadcast(game)
+            return None
+
+        if rules.rematch_topics_conflict(game):
+            rules.clear_rematch_pick(game, slot)
+            await self._save_and_broadcast(game)
+            raise DomainError("المواضيع ديالك كتلاقى مع مواضيع الخصم، ختار حاجة أخرى")
+
+        round_categories, chooser_for_round = rules.build_round_plan(
+            game.total_rounds,
+            game.rematch_picks[PlayerSlot.PLAYER1],
+            game.rematch_picks[PlayerSlot.PLAYER2],
+        )
+        new_game = self.create_game(
+            name1=game.player1.name,
+            name2=game.player2.name,
+            total_rounds=game.total_rounds,
+            mode=game.mode,
+            round_categories=round_categories,
+            chooser_for_round=chooser_for_round,
+        )
+        game.next_game_id = new_game.id
+        game.add_log("🔁 بدات مناظرة جديدة بين نفس الطرفين")
+        await self._save_and_broadcast(game)
+        return new_game.id
+
+    def register_reaction(self, game_id: str, sender_key: str, emoji: str) -> None:
         """A lightweight emoji reaction — doesn't touch the game state or
         timers at all (unlike the interruption cards). Only validates and
-        rate-limits here; the caller relays it to the *other* connection
-        directly (the sender already showed it locally, instantly)."""
+        rate-limits here; the caller relays it to everyone else directly
+        (the sender already showed it locally, instantly). sender_key is a
+        player's slot value or an audience member's id — anything unique
+        enough to rate-limit independently per sender."""
         self._get(game_id)  # raises GameNotFound if the game doesn't exist
         if emoji not in ALLOWED_REACTIONS:
             raise DomainError("هاد الإيموجي ماشي متاح")
-        key = f"{game_id}:{slot.value}"
+        key = f"{game_id}:{sender_key}"
         now = time.monotonic()
         last = self._last_reaction_at.get(key, 0.0)
         if now - last < REACTION_COOLDOWN_SECONDS:
@@ -314,4 +359,11 @@ class GameService:
             "player2": player_dict(game.player2, game.ready_player2),
             "round_winners": [w.value for w in game.round_winners],
             "log": game.log[:20],
+            "vote_player1": game.vote_player1,
+            "vote_player2": game.vote_player2,
+            "rematch_submitted": {
+                "player1": PlayerSlot.PLAYER1 in game.rematch_picks,
+                "player2": PlayerSlot.PLAYER2 in game.rematch_picks,
+            },
+            "next_game_id": game.next_game_id,
         }

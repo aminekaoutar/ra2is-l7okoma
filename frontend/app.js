@@ -55,6 +55,24 @@
   let pc = null;
   let localStream = null;
 
+  // ------------------------------------------------------ audience / rematch
+  let isAudience = false;
+  let audienceId = null;
+  let remoteStream = null; // the other debater's track, captured for mixing
+
+  // player1-only: mixes both debaters' audio into one stream and meshes it
+  // out to every spectator, one receive-only RTCPeerConnection each.
+  let audienceMixStream = null;
+  let audienceAudioCtx = null;
+  const audiencePeers = {};
+  let pendingAudienceJoins = [];
+
+  // audience-only: single receive-only connection to player1's mix.
+  let audiencePc = null;
+
+  let hasVoted = false;
+  let rematchTopics = [];
+
   function fmt(s) {
     s = Math.max(0, Math.floor(s));
     const m = Math.floor(s / 60), r = s % 60;
@@ -214,6 +232,25 @@
         }
       } else if (msg.type === "reaction") {
         spawnReaction(msg.slot, msg.emoji);
+      } else if (msg.type === "audience_joined") {
+        if (mySlot === "player1") {
+          pendingAudienceJoins.push(msg.audience_id);
+          flushPendingAudienceJoins();
+        }
+      } else if (msg.type === "audience_left") {
+        const p = audiencePeers[msg.audience_id];
+        if (p) {
+          p.close();
+          delete audiencePeers[msg.audience_id];
+        }
+      } else if (msg.type === "audience_signal") {
+        handlePlayerSideAudienceSignal(msg.audience_id, msg.payload);
+      } else if (msg.type === "rematch_ready") {
+        toast("بدات مناظرة جديدة بينكم — كتبدا دابا...");
+        gameId = msg.game_id;
+        resetForNewGame();
+        gameWs.close();
+        connectGame();
       } else if (msg.type === "error") {
         toast(msg.message);
       }
@@ -221,6 +258,65 @@
     gameWs.onclose = () => {
       if (!$("screen-game").hidden) toast("انقطع الاتصال بالخادم");
     };
+  }
+
+  function connectAudience() {
+    showScreen("screen-game");
+    $("audienceBadge").hidden = false;
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    gameWs = new WebSocket(`${proto}//${location.host}/ws/${gameId}/watch`);
+    gameWs.onmessage = (evt) => {
+      const msg = JSON.parse(evt.data);
+      if (msg.type === "state") {
+        state = msg;
+        render();
+      } else if (msg.type === "your_audience_id") {
+        audienceId = msg.id;
+      } else if (msg.type === "audience_signal") {
+        handleAudienceSignal(msg.payload);
+      } else if (msg.type === "reaction") {
+        spawnReaction(msg.slot, msg.emoji);
+      } else if (msg.type === "rematch_ready") {
+        toast("بدات مناظرة جديدة، كتفرج عليها دابا...");
+        gameId = msg.game_id;
+        resetForNewGame();
+        gameWs.close();
+        connectAudience();
+      } else if (msg.type === "error") {
+        toast(msg.message);
+      }
+    };
+    gameWs.onclose = () => {
+      if (!$("screen-game").hidden) toast("انقطع الاتصال بالخادم");
+    };
+  }
+
+  // Shared cleanup before swapping to a rematch's fresh game id — tears
+  // down every WebRTC connection and per-game UI flag so the new game
+  // starts from a clean slate instead of carrying over stale state.
+  function resetForNewGame() {
+    teardownVoice();
+    teardownAudiencePc();
+    Object.values(audiencePeers).forEach((p) => p.close());
+    for (const k in audiencePeers) delete audiencePeers[k];
+    audienceMixStream = null;
+    remoteStream = null;
+    pendingAudienceJoins = [];
+    if (audienceAudioCtx) {
+      audienceAudioCtx.close();
+      audienceAudioCtx = null;
+    }
+    offerSent = false;
+    peerPresent = false;
+    pendingSignals = [];
+    hasVoted = false;
+    rematchTopics = [];
+    const picker = $("rematchTopicPicker");
+    picker.innerHTML = "";
+    delete picker.dataset.built;
+    delete picker.dataset.building;
+    $("voiceStatus").classList.remove("live", "muted");
+    $("voiceStatusText").textContent = "كنوصلو الصوت...";
   }
 
   // --------------------------------------------------------------- voice
@@ -249,6 +345,8 @@
       const audioEl = $("remoteAudio");
       audioEl.srcObject = e.streams[0];
       audioEl.hidden = false;
+      remoteStream = e.streams[0];
+      if (mySlot === "player1") flushPendingAudienceJoins();
     };
     pc.onicecandidate = (e) => {
       if (e.candidate) sendGame("rtc_signal", { payload: { candidate: e.candidate } });
@@ -327,6 +425,111 @@
     }
   }
 
+  // ------------------------------------------------- audience audio (mesh)
+
+  // Rather than run a full SFU, player1 mixes both debaters' tracks locally
+  // via Web Audio and broadcasts that single mixed stream out to every
+  // spectator over its own receive-only RTCPeerConnection. A muted debater
+  // track outputs silence into the mix too, so the "only hear whoever's
+  // turn it is" rule the debaters already get applies to the audience
+  // automatically — no extra gating needed here.
+  function ensureAudienceMix() {
+    if (audienceMixStream) return audienceMixStream;
+    if (!localStream || !remoteStream) return null;
+    audienceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audienceAudioCtx.resume().catch(() => {}); // browsers may start it suspended
+    const dest = audienceAudioCtx.createMediaStreamDestination();
+    audienceAudioCtx.createMediaStreamSource(localStream).connect(dest);
+    audienceAudioCtx.createMediaStreamSource(remoteStream).connect(dest);
+    audienceMixStream = dest.stream;
+    return audienceMixStream;
+  }
+
+  function flushPendingAudienceJoins() {
+    if (mySlot !== "player1" || !pendingAudienceJoins.length) return;
+    if (!ensureAudienceMix()) return; // not ready yet — stays queued
+    const queued = pendingAudienceJoins;
+    pendingAudienceJoins = [];
+    queued.forEach(createAudiencePeer);
+  }
+
+  function createAudiencePeer(aid) {
+    const mix = ensureAudienceMix();
+    if (!mix) {
+      pendingAudienceJoins.push(aid);
+      return;
+    }
+    const apc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    mix.getTracks().forEach((t) => apc.addTrack(t, mix));
+    apc.onicecandidate = (e) => {
+      if (e.candidate) sendGame("audience_signal", { audience_id: aid, payload: { candidate: e.candidate } });
+    };
+    audiencePeers[aid] = apc;
+    (async () => {
+      const offer = await apc.createOffer();
+      await apc.setLocalDescription(offer);
+      sendGame("audience_signal", { audience_id: aid, payload: { sdp: apc.localDescription } });
+    })();
+  }
+
+  async function handlePlayerSideAudienceSignal(aid, payload) {
+    const apc = audiencePeers[aid];
+    if (!apc || !payload) return;
+    try {
+      if (payload.sdp) {
+        await apc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+      } else if (payload.candidate) {
+        await apc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      }
+    } catch (e) {
+      /* ICE races are normal, ignore */
+    }
+  }
+
+  function handleAudienceSignal(payload) {
+    if (!payload) return;
+    if (!audiencePc) {
+      audiencePc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      audiencePc.ontrack = (e) => {
+        const audioEl = $("remoteAudio");
+        audioEl.srcObject = e.streams[0];
+        audioEl.hidden = false;
+      };
+      audiencePc.onicecandidate = (e) => {
+        if (e.candidate) sendGame("audience_signal", { payload: { candidate: e.candidate } });
+      };
+      audiencePc.onconnectionstatechange = () => {
+        if (audiencePc.connectionState === "connected") {
+          $("voiceStatusText").textContent = "الصوت متصل";
+          $("voiceStatus").classList.add("live");
+        }
+      };
+    }
+    (async () => {
+      try {
+        if (payload.sdp) {
+          await audiencePc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+          if (payload.sdp.type === "offer") {
+            const answer = await audiencePc.createAnswer();
+            await audiencePc.setLocalDescription(answer);
+            sendGame("audience_signal", { payload: { sdp: audiencePc.localDescription } });
+          }
+        } else if (payload.candidate) {
+          await audiencePc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+        }
+      } catch (e) {
+        /* ICE races are normal, ignore */
+      }
+    })();
+  }
+
+  function teardownAudiencePc() {
+    if (audiencePc) {
+      audiencePc.close();
+      audiencePc = null;
+    }
+  }
+
   // ------------------------------------------------------------- actions
 
   $("startPauseBtn").addEventListener("click", () => {
@@ -360,10 +563,32 @@
   $("closeSettings").addEventListener("click", () => ($("settingsOverlay").hidden = true));
   $("leaveBtn").addEventListener("click", () => ($("leaveOverlay").hidden = false));
   $("cancelLeave").addEventListener("click", () => ($("leaveOverlay").hidden = true));
-  $("confirmLeave").addEventListener("click", () => location.reload());
-  $("replayBtn").addEventListener("click", () => location.reload());
+  // Reloading /watch/{id} just re-joins the same audience — send spectators
+  // back to the homepage instead, and only reload (rejoin the lobby) for debaters.
+  $("confirmLeave").addEventListener("click", () => (isAudience ? (location.href = "/") : location.reload()));
+  $("replayBtn").addEventListener("click", () => (isAudience ? (location.href = "/") : location.reload()));
 
-  window.addEventListener("beforeunload", teardownVoice);
+  $("shareBtn").addEventListener("click", () => {
+    $("shareLinkInput").value = `${location.origin}/watch/${gameId}`;
+    $("shareOverlay").hidden = false;
+  });
+  $("closeShare").addEventListener("click", () => ($("shareOverlay").hidden = true));
+  $("copyShareLinkBtn").addEventListener("click", async () => {
+    const input = $("shareLinkInput");
+    input.select();
+    try {
+      await navigator.clipboard.writeText(input.value);
+    } catch (e) {
+      document.execCommand("copy");
+    }
+    toast("تنسخ الرابط!");
+  });
+
+  window.addEventListener("beforeunload", () => {
+    teardownVoice();
+    teardownAudiencePc();
+    Object.values(audiencePeers).forEach((p) => p.close());
+  });
 
   // ----------------------------------------------------------- reactions
 
@@ -457,8 +682,8 @@
 
     $("nameA").textContent = state.player1.name;
     $("nameB").textContent = state.player2.name;
-    $("statusA").lastChild.textContent = mySlot === "player1" ? "أنت" : "الخصم";
-    $("statusB").lastChild.textContent = mySlot === "player2" ? "أنت" : "الخصم";
+    $("statusA").lastChild.textContent = isAudience ? "متناظر" : mySlot === "player1" ? "أنت" : "الخصم";
+    $("statusB").lastChild.textContent = isAudience ? "متناظر" : mySlot === "player2" ? "أنت" : "الخصم";
 
     const currentIdx = PHASE_ORDER.indexOf(state.phase);
     document.querySelectorAll("#stepper .step").forEach((stepEl) => {
@@ -545,6 +770,7 @@
     if (state.status === "finished") {
       $("finalNamesLine").textContent = `${state.player1.name} — و — ${state.player2.name}`;
       $("finalOverlay").hidden = false;
+      renderFinal();
     } else {
       $("finalOverlay").hidden = true;
     }
@@ -572,6 +798,8 @@
     a.classList.toggle("is-ready", state.player1.ready);
     b.textContent = state.player2.name + (state.player2.ready ? " ✓" : "");
     b.classList.toggle("is-ready", state.player2.ready);
+
+    if (isAudience) return; // no ready button to drive for a spectator (CSS also hides it)
 
     const iAmReady = state[mySlot].ready;
     $("readyBtn").disabled = iAmReady;
@@ -632,6 +860,112 @@
     $("pendingActionsResponder").hidden = iAmRequester;
   }
 
+  function renderFinal() {
+    const totalVotes = state.vote_player1 + state.vote_player2;
+    const votesBlock = $("voteResultsBlock");
+    if (totalVotes > 0) {
+      votesBlock.hidden = false;
+      const pctA = Math.round((state.vote_player1 / totalVotes) * 100);
+      const pctB = 100 - pctA;
+      $("voteBars").innerHTML = `
+        <div class="vote-bar-row">
+          <div class="vote-bar-label"><span>${state.player1.name}</span><span>${state.vote_player1} صوت (${pctA}%)</span></div>
+          <div class="vote-bar-track"><div class="vote-bar-fill a" style="width:${pctA}%"></div></div>
+        </div>
+        <div class="vote-bar-row">
+          <div class="vote-bar-label"><span>${state.player2.name}</span><span>${state.vote_player2} صوت (${pctB}%)</span></div>
+          <div class="vote-bar-track"><div class="vote-bar-fill b" style="width:${pctB}%"></div></div>
+        </div>`;
+    } else {
+      votesBlock.hidden = true;
+    }
+
+    const voteSection = $("audienceVoteSection");
+    if (isAudience) {
+      voteSection.hidden = false;
+      $("voteNameA").textContent = state.player1.name;
+      $("voteNameB").textContent = state.player2.name;
+      $("voteBtnA").hidden = hasVoted;
+      $("voteBtnB").hidden = hasVoted;
+      $("voteThanksText").hidden = !hasVoted;
+    } else {
+      voteSection.hidden = true;
+    }
+
+    const rematchSection = $("rematchSection");
+    if (isAudience) {
+      rematchSection.hidden = true;
+    } else {
+      rematchSection.hidden = false;
+      renderRematchPicker();
+    }
+  }
+
+  $("voteBtnA").addEventListener("click", () => {
+    sendGame("cast_vote", { winner: "player1" });
+    hasVoted = true;
+    renderFinal();
+  });
+  $("voteBtnB").addEventListener("click", () => {
+    sendGame("cast_vote", { winner: "player2" });
+    hasVoted = true;
+    renderFinal();
+  });
+
+  function requiredRematchTopicCount() {
+    return state.total_rounds === 3 ? 1 : 2;
+  }
+
+  function renderRematchPicker() {
+    const already = state.rematch_submitted && state.rematch_submitted[mySlot];
+    $("rematchWaitingText").hidden = !already;
+    const wrap = $("rematchTopicPicker");
+    wrap.hidden = already;
+    $("submitRematchBtn").hidden = already;
+    if (already) return;
+
+    if (!wrap.dataset.built && !wrap.dataset.building) {
+      wrap.dataset.building = "1";
+      fetch("/api/categories")
+        .then((res) => res.json())
+        .then((data) => {
+          wrap.innerHTML = "";
+          data.categories.forEach((cat) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "topic-chip-toggle";
+            btn.textContent = cat;
+            btn.addEventListener("click", () => toggleRematchTopic(cat, btn));
+            wrap.appendChild(btn);
+          });
+          wrap.dataset.built = "1";
+          delete wrap.dataset.building;
+        });
+    }
+  }
+
+  function toggleRematchTopic(cat, btn) {
+    const need = requiredRematchTopicCount();
+    const idx = rematchTopics.indexOf(cat);
+    if (idx !== -1) {
+      rematchTopics.splice(idx, 1);
+      btn.classList.remove("selected");
+    } else {
+      if (rematchTopics.length >= need) return;
+      rematchTopics.push(cat);
+      btn.classList.add("selected");
+    }
+    document.querySelectorAll("#rematchTopicPicker .topic-chip-toggle").forEach((b) => {
+      if (!b.classList.contains("selected")) b.disabled = rematchTopics.length >= need;
+    });
+    $("submitRematchBtn").disabled = rematchTopics.length !== need;
+  }
+
+  $("submitRematchBtn").addEventListener("click", () => {
+    sendGame("submit_rematch_topics", { topics: rematchTopics });
+    $("submitRematchBtn").disabled = true;
+  });
+
   function setRing(ringId, timeId, remaining, cap, color) {
     const ring = $(ringId);
     const pct = cap > 0 ? Math.max(0, Math.min(100, (remaining / cap) * 100)) : 0;
@@ -641,5 +975,16 @@
     $(timeId).textContent = fmt(remaining);
   }
 
-  loadTopicPicker();
+  (function init() {
+    const m = location.pathname.match(/^\/watch\/([^/]+)\/?$/);
+    if (m) {
+      isAudience = true;
+      gameId = m[1];
+      mySlot = null;
+      document.body.classList.add("audience-view");
+      connectAudience();
+    } else {
+      loadTopicPicker();
+    }
+  })();
 })();

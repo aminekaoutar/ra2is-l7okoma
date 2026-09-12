@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Optional, TypedDict
 
-from ..domain.enums import GameMode, PlayerSlot
+from ..domain import rules
+from ..domain.enums import GameMode
 from ..domain.lobby import LobbyEntry, is_compatible
 from .game_service import GameService
 from .lobby_ports import LobbyNotifier, LobbyRepository
@@ -13,32 +14,6 @@ class MatchInfo(TypedDict):
     waiting_entry_id: str
     waiting_slot: str
     joining_slot: str
-
-
-def _build_round_plan(waiting: LobbyEntry, entry: LobbyEntry) -> tuple[list[Optional[str]], list[Optional[PlayerSlot]]]:
-    """Every topic each person picked gets its own round — nothing picked
-    is ever wasted — plus one fully-random round at the end. 3 rounds means
-    each person picked exactly 1 topic; 5 rounds means each picked 2,
-    interleaved so nobody's two rounds are back-to-back."""
-    if waiting.round_count == 3:
-        categories = [waiting.topics[0], entry.topics[0], None]
-        choosers = [PlayerSlot.PLAYER1, PlayerSlot.PLAYER2, None]
-    else:  # 5
-        categories = [
-            waiting.topics[0],
-            entry.topics[0],
-            waiting.topics[1],
-            entry.topics[1],
-            None,
-        ]
-        choosers = [
-            PlayerSlot.PLAYER1,
-            PlayerSlot.PLAYER2,
-            PlayerSlot.PLAYER1,
-            PlayerSlot.PLAYER2,
-            None,
-        ]
-    return categories, choosers
 
 
 class LobbyService:
@@ -61,7 +36,9 @@ class LobbyService:
             return entry, None
 
         self.repo.remove(waiting.id)
-        round_categories, chooser_for_round = _build_round_plan(waiting, entry)
+        round_categories, chooser_for_round = rules.build_round_plan(
+            round_count, waiting.topics, entry.topics
+        )
         game = self.game_service.create_game(
             name1=waiting.name,
             name2=entry.name,

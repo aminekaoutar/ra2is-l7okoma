@@ -94,6 +94,16 @@ class Game:
     ready_player1: bool = False
     ready_player2: bool = False
 
+    # audience voting — only meaningful once status == FINISHED
+    vote_player1: int = 0
+    vote_player2: int = 0
+    voted_audience_ids: set[str] = field(default_factory=set)
+
+    # rematch: both debaters independently pick fresh topics, then a new
+    # game is created between the same two of them — no lobby, no re-matching
+    rematch_picks: dict[PlayerSlot, tuple[str, ...]] = field(default_factory=dict)
+    next_game_id: Optional[str] = None
+
     @staticmethod
     def new(
         name1: str,

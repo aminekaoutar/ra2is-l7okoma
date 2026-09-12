@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .application.game_service import GameService
@@ -77,6 +78,14 @@ async def no_cache_static(request, call_next):
 # must be registered first.
 app.include_router(build_lobby_router(lobby_service, lobby_connections))
 app.include_router(build_router(service, connections))
+
+
+@app.get("/watch/{game_id}")
+async def watch_page(game_id: str):
+    # Same single-page app — app.js detects the /watch/ path on load and
+    # switches into audience mode instead of showing the lobby.
+    return FileResponse(FRONTEND_DIR / "index.html")
+
 
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

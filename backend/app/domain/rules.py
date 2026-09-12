@@ -367,3 +367,64 @@ def next_round(game: Game) -> None:
     game.round_no += 1
     game.status = GameStatus.ACTIVE
     begin_round(game)
+
+
+def build_round_plan(
+    round_count: int, topics_p1: tuple[str, ...], topics_p2: tuple[str, ...]
+) -> tuple[list[Optional[str]], list[Optional[PlayerSlot]]]:
+    """Every topic each person picked gets its own round — nothing picked
+    is ever wasted — plus one fully-random round at the end. 3 rounds means
+    each person picked exactly 1 topic; 5 rounds means each picked 2,
+    interleaved so nobody's two rounds are back-to-back. Shared by lobby
+    matching and rematches — same rule either way."""
+    if round_count == 3:
+        categories = [topics_p1[0], topics_p2[0], None]
+        choosers = [PlayerSlot.PLAYER1, PlayerSlot.PLAYER2, None]
+    else:  # 5
+        categories = [topics_p1[0], topics_p2[0], topics_p1[1], topics_p2[1], None]
+        choosers = [
+            PlayerSlot.PLAYER1,
+            PlayerSlot.PLAYER2,
+            PlayerSlot.PLAYER1,
+            PlayerSlot.PLAYER2,
+            None,
+        ]
+    return categories, choosers
+
+
+# ------------------------------------------------------------------- voting
+
+def cast_vote(game: Game, audience_id: str, winner: PlayerSlot) -> None:
+    if game.status != GameStatus.FINISHED:
+        raise DomainError("التصويت غايبدا غير من بعد ما تسالا المناظرة")
+    if audience_id in game.voted_audience_ids:
+        raise DomainError("صوتيتي ديجا")
+    game.voted_audience_ids.add(audience_id)
+    if winner == PlayerSlot.PLAYER1:
+        game.vote_player1 += 1
+    else:
+        game.vote_player2 += 1
+
+
+# ------------------------------------------------------------------ rematch
+
+def record_rematch_pick(game: Game, slot: PlayerSlot, topics: tuple[str, ...]) -> None:
+    if game.status != GameStatus.FINISHED:
+        raise DomainError("لازم المناظرة تكون سالات باش تعاودوها")
+    if len(set(topics)) != len(topics):
+        raise DomainError("خاصك تختار مواضيع مختلفة")
+    game.rematch_picks[slot] = tuple(topics)
+
+
+def rematch_ready(game: Game) -> bool:
+    return PlayerSlot.PLAYER1 in game.rematch_picks and PlayerSlot.PLAYER2 in game.rematch_picks
+
+
+def rematch_topics_conflict(game: Game) -> bool:
+    p1 = set(game.rematch_picks.get(PlayerSlot.PLAYER1, ()))
+    p2 = set(game.rematch_picks.get(PlayerSlot.PLAYER2, ()))
+    return bool(p1 & p2)
+
+
+def clear_rematch_pick(game: Game, slot: PlayerSlot) -> None:
+    game.rematch_picks.pop(slot, None)

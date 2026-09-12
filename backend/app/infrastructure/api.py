@@ -51,7 +51,7 @@ def build_router(service: GameService, connections: ConnectionManager) -> APIRou
         # controlling both sides, unchanged.
         locked_slot: Optional[PlayerSlot] = PlayerSlot(slot) if slot else None
 
-        had_peer = await connections.connect(game_id, websocket)
+        had_peer = await connections.connect(game_id, websocket, slot=slot)
         await websocket.send_json({"type": "state", **service.state(game)})
         if had_peer:
             # Both sides are now actually connected — safe to start WebRTC
@@ -107,12 +107,30 @@ def build_router(service: GameService, connections: ConnectionManager) -> APIRou
                     elif action == "send_reaction":
                         reaction_slot = locked_slot or PlayerSlot(msg["slot"])
                         emoji = msg.get("emoji", "")
-                        service.register_reaction(game_id, reaction_slot, emoji)
+                        service.register_reaction(game_id, reaction_slot.value, emoji)
                         # The sender already showed their own reaction locally and
-                        # instantly — only the other side needs the broadcast.
-                        await connections.relay(
+                        # instantly — everyone else (opponent + audience) needs it.
+                        await connections.relay_including_audience(
                             game_id, websocket, {"type": "reaction", "slot": reaction_slot.value, "emoji": emoji}
                         )
+                    elif action == "submit_rematch_topics":
+                        rematch_slot = locked_slot or PlayerSlot(msg["slot"])
+                        new_id = await service.submit_rematch_topics(
+                            game_id, rematch_slot, msg.get("topics") or []
+                        )
+                        if new_id:
+                            # Both debaters have chosen — everyone currently
+                            # here (both sides, plus any audience) follows to
+                            # the new match together.
+                            await connections.broadcast(game_id, {"type": "rematch_ready", "game_id": new_id})
+                    elif action == "audience_signal":
+                        audience_id = msg.get("audience_id")
+                        if audience_id:
+                            await connections.send_to_audience(
+                                game_id,
+                                audience_id,
+                                {"type": "audience_signal", "payload": msg.get("payload")},
+                            )
                     elif action == "play_card":
                         requested_slot = PlayerSlot(msg["slot"])
                         if locked_slot is not None and requested_slot != locked_slot:
@@ -137,5 +155,52 @@ def build_router(service: GameService, connections: ConnectionManager) -> APIRou
                     await websocket.send_json({"type": "error", "message": str(e)})
         except WebSocketDisconnect:
             connections.disconnect(game_id, websocket)
+
+    @router.websocket("/ws/{game_id}/watch")
+    async def audience_ws_endpoint(websocket: WebSocket, game_id: str):
+        try:
+            game = service.get_game(game_id)
+        except GameNotFound:
+            await websocket.close(code=4404)
+            return
+
+        audience_id = connections.new_audience_id()
+        await connections.connect_audience(game_id, audience_id, websocket)
+        await websocket.send_json({"type": "state", **service.state(game)})
+        await websocket.send_json({"type": "your_audience_id", "id": audience_id})
+        # Only player1 broadcasts a mixed audio feed out to the audience —
+        # they're the only one who needs to know someone new is listening.
+        await connections.send_to_player(
+            game_id, "player1", {"type": "audience_joined", "audience_id": audience_id}
+        )
+
+        try:
+            while True:
+                msg = await websocket.receive_json()
+                action = msg.get("action")
+                try:
+                    if action == "audience_signal":
+                        await connections.send_to_player(
+                            game_id,
+                            "player1",
+                            {"type": "audience_signal", "audience_id": audience_id, "payload": msg.get("payload")},
+                        )
+                    elif action == "send_reaction":
+                        emoji = msg.get("emoji", "")
+                        service.register_reaction(game_id, f"audience:{audience_id}", emoji)
+                        await connections.relay_including_audience(
+                            game_id, websocket, {"type": "reaction", "slot": None, "emoji": emoji}
+                        )
+                    elif action == "cast_vote":
+                        await service.cast_vote(game_id, audience_id, PlayerSlot(msg["winner"]))
+                    else:
+                        await websocket.send_json({"type": "error", "message": f"unknown action: {action}"})
+                except (DomainError, KeyError, ValueError) as e:
+                    await websocket.send_json({"type": "error", "message": str(e)})
+        except WebSocketDisconnect:
+            connections.disconnect_audience(game_id, audience_id)
+            await connections.send_to_player(
+                game_id, "player1", {"type": "audience_left", "audience_id": audience_id}
+            )
 
     return router
