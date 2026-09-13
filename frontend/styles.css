@@ -121,7 +121,7 @@ img,svg{display:block;}
   padding:6px 14px; border-radius:16px;
 }
 
-.voice-chip{color:var(--green-deep); border-color:var(--green);}
+.voice-chip{color:var(--green-deep); border-color:var(--green); position:relative;}
 .voice-chip.live{background:var(--green-soft);}
 .voice-chip.muted{color:var(--muted); border-color:var(--line);}
 
@@ -266,6 +266,11 @@ img,svg{display:block;}
 }
 @media (prefers-reduced-motion: reduce){
   .reaction-float{animation:none; opacity:0;}
+}
+
+.reaction-float .r-name{
+  display:block; font-size:10px; font-weight:800; color:var(--gold); text-align:center;
+  transform:translateY(-4px);
 }
 
 .reaction-bar{display:flex; gap:7px; justify-content:center; flex-wrap:wrap;}

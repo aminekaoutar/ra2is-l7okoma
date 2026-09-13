@@ -259,6 +259,19 @@ class GameService:
             raise DomainError("تسنى شوية قبل ما تعاود ترياكت")
         self._last_reaction_at[key] = now
 
+    async def audience_joined(self, game_id: str, name: str) -> None:
+        game = self._get(game_id)
+        game.add_log(f"👀 {name} بدا يتفرج")
+        await self._save_and_broadcast(game)
+
+    async def audience_left(self, game_id: str, name: str) -> None:
+        try:
+            game = self._get(game_id)
+        except GameNotFound:
+            return
+        game.add_log(f"👋 {name} خرج من التفرج")
+        await self._save_and_broadcast(game)
+
     async def resolve_interruption_now(self, game_id: str) -> dict:
         game = self._get(game_id)
         rules.resolve_interruption(game)

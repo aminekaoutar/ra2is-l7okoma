@@ -42,6 +42,28 @@
   </div>
 </section>
 
+<!-- ================= AUDIENCE NAME GATE ================= -->
+<section id="screen-audience-name" class="screen" hidden>
+  <div class="setup-card">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 100 100" width="52" height="52" aria-hidden="true">
+          <circle cx="50" cy="50" r="47" fill="#C1272D" stroke="#FFFFFF" stroke-width="5"/>
+          <path fill="#04593B" d="M50 18 L57.64 39.48 L80.44 40.11 L62.36 54.02 L68.81 75.89 L50 63 L31.19 75.89 L37.64 54.02 L19.56 40.11 L42.36 39.48 Z"/>
+        </svg>
+      </div>
+      <h1 class="display">Ra2is L7okoma</h1>
+      <p class="tagline">غادي تتفرج على مناظرة مباشرة</p>
+    </div>
+
+    <label class="field-label" for="audienceNameInput">شكون نتا؟</label>
+    <input id="audienceNameInput" class="field-input" maxlength="24" placeholder="سميتك">
+    <p class="field-hint">غادي تسمع المتناظرين وتقدر تصيفط ريأكسيون، وتصوت للفائز فالأخير.</p>
+
+    <button id="joinAudienceBtn" class="btn-start" disabled>دخول كمتفرج</button>
+  </div>
+</section>
+
 <!-- ================= WAITING SCREEN ================= -->
 <section id="screen-waiting" class="screen" hidden>
   <div class="setup-card waiting-card">
@@ -108,6 +130,7 @@
     <div class="topic-chip voice-chip" id="voiceStatus">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><path d="M12 19v4"/></svg>
       <span id="voiceStatusText">كنوصلو الصوت...</span>
+      <div class="reaction-zone" id="reactionZoneAudience"></div>
     </div>
     <div class="topic-chip audience-chip" id="audienceBadge" hidden>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>

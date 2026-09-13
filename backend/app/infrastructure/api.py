@@ -165,14 +165,18 @@ def build_router(service: GameService, connections: ConnectionManager) -> APIRou
             return
 
         audience_id = connections.new_audience_id()
+        raw_name = (websocket.query_params.get("name") or "").strip()
+        name = raw_name[:24] if raw_name else "متفرج"
+
         await connections.connect_audience(game_id, audience_id, websocket)
         await websocket.send_json({"type": "state", **service.state(game)})
-        await websocket.send_json({"type": "your_audience_id", "id": audience_id})
+        await websocket.send_json({"type": "your_audience_id", "id": audience_id, "name": name})
         # Only player1 broadcasts a mixed audio feed out to the audience —
         # they're the only one who needs to know someone new is listening.
         await connections.send_to_player(
-            game_id, "player1", {"type": "audience_joined", "audience_id": audience_id}
+            game_id, "player1", {"type": "audience_joined", "audience_id": audience_id, "name": name}
         )
+        await service.audience_joined(game_id, name)
 
         try:
             while True:
@@ -189,7 +193,7 @@ def build_router(service: GameService, connections: ConnectionManager) -> APIRou
                         emoji = msg.get("emoji", "")
                         service.register_reaction(game_id, f"audience:{audience_id}", emoji)
                         await connections.relay_including_audience(
-                            game_id, websocket, {"type": "reaction", "slot": None, "emoji": emoji}
+                            game_id, websocket, {"type": "reaction", "slot": None, "name": name, "emoji": emoji}
                         )
                     elif action == "cast_vote":
                         await service.cast_vote(game_id, audience_id, PlayerSlot(msg["winner"]))
@@ -202,5 +206,6 @@ def build_router(service: GameService, connections: ConnectionManager) -> APIRou
             await connections.send_to_player(
                 game_id, "player1", {"type": "audience_left", "audience_id": audience_id}
             )
+            await service.audience_left(game_id, name)
 
     return router

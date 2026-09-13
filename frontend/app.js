@@ -58,6 +58,7 @@
   // ------------------------------------------------------ audience / rematch
   let isAudience = false;
   let audienceId = null;
+  let audienceName = "";
   let remoteStream = null; // the other debater's track, captured for mixing
 
   // player1-only: mixes both debaters' audio into one stream and meshes it
@@ -88,7 +89,7 @@
   }
 
   function showScreen(id) {
-    ["screen-lobby", "screen-waiting", "screen-game"].forEach((s) => ($(s).hidden = s !== id));
+    ["screen-lobby", "screen-waiting", "screen-game", "screen-audience-name"].forEach((s) => ($(s).hidden = s !== id));
   }
 
   function sendGame(action, extra) {
@@ -231,7 +232,7 @@
           maybeInitiateOffer();
         }
       } else if (msg.type === "reaction") {
-        spawnReaction(msg.slot, msg.emoji);
+        spawnReaction(msg.slot, msg.emoji, msg.name);
       } else if (msg.type === "audience_joined") {
         if (mySlot === "player1") {
           pendingAudienceJoins.push(msg.audience_id);
@@ -264,7 +265,7 @@
     showScreen("screen-game");
     $("audienceBadge").hidden = false;
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    gameWs = new WebSocket(`${proto}//${location.host}/ws/${gameId}/watch`);
+    gameWs = new WebSocket(`${proto}//${location.host}/ws/${gameId}/watch?name=${encodeURIComponent(audienceName)}`);
     gameWs.onmessage = (evt) => {
       const msg = JSON.parse(evt.data);
       if (msg.type === "state") {
@@ -275,7 +276,7 @@
       } else if (msg.type === "audience_signal") {
         handleAudienceSignal(msg.payload);
       } else if (msg.type === "reaction") {
-        spawnReaction(msg.slot, msg.emoji);
+        spawnReaction(msg.slot, msg.emoji, msg.name);
       } else if (msg.type === "rematch_ready") {
         toast("بدات مناظرة جديدة، كتفرج عليها دابا...");
         gameId = msg.game_id;
@@ -603,19 +604,29 @@
     btn.addEventListener("click", () => {
       if (Date.now() < reactionCooldownUntil) return; // client-side guard; server enforces it for real
       sendGame("send_reaction", { emoji: btn.dataset.emoji });
-      spawnReaction(mySlot, btn.dataset.emoji); // instant local feedback, don't wait on the round trip
+      // instant local feedback, don't wait on the round trip
+      spawnReaction(mySlot, btn.dataset.emoji, isAudience ? audienceName : null);
       reactionCooldownUntil = Date.now() + REACTION_COOLDOWN_MS;
       setReactionButtonsDisabled(true);
       setTimeout(() => setReactionButtonsDisabled(false), REACTION_COOLDOWN_MS);
     });
   });
 
-  function spawnReaction(slot, emoji) {
-    const zone = $(slot === "player1" ? "reactionZoneA" : "reactionZoneB");
+  function spawnReaction(slot, emoji, name) {
+    const zoneId = slot === "player1" ? "reactionZoneA" : slot === "player2" ? "reactionZoneB" : "reactionZoneAudience";
+    const zone = $(zoneId);
     if (!zone) return;
     const span = document.createElement("span");
     span.className = "reaction-float";
-    span.textContent = emoji;
+    if (name) {
+      const nameEl = document.createElement("span");
+      nameEl.className = "r-name";
+      nameEl.textContent = name;
+      span.appendChild(nameEl);
+      span.appendChild(document.createTextNode(emoji));
+    } else {
+      span.textContent = emoji;
+    }
     zone.appendChild(span);
     setTimeout(() => span.remove(), 1700);
   }
@@ -975,6 +986,16 @@
     $(timeId).textContent = fmt(remaining);
   }
 
+  $("audienceNameInput").addEventListener("input", () => {
+    $("joinAudienceBtn").disabled = !$("audienceNameInput").value.trim();
+  });
+  $("joinAudienceBtn").addEventListener("click", () => {
+    const name = $("audienceNameInput").value.trim();
+    if (!name) return;
+    audienceName = name;
+    connectAudience();
+  });
+
   (function init() {
     const m = location.pathname.match(/^\/watch\/([^/]+)\/?$/);
     if (m) {
@@ -982,7 +1003,7 @@
       gameId = m[1];
       mySlot = null;
       document.body.classList.add("audience-view");
-      connectAudience();
+      showScreen("screen-audience-name");
     } else {
       loadTopicPicker();
     }
