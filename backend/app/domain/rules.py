@@ -47,7 +47,9 @@ def begin_round(game: Game) -> None:
     game.player1.personal_remaining = INTRO_DURATION
     game.player2.personal_remaining = INTRO_DURATION
     game.current_topic = None
-    game.second_topic = None
+    # second_topic is deliberately NOT cleared here: it's how the previous
+    # round's end-of-round pick hands the upcoming round its topic (see
+    # GameService._setup_round_questions, which consumes and clears it).
     game.choosing_slot = None
     game.choosing_candidates = []
     game.choosing_deadline = 0
@@ -172,8 +174,9 @@ def draw_topic(game: Game, pool: list[Topic], category: Optional[str] = None) ->
 
 # --------------------------------------------------------- second question
 
-def pick_second_candidates(game: Game, pool: list[Topic], count: int = SECOND_QUESTION_CHOICES) -> list[Topic]:
-    category = game.category_for_round
+def pick_second_candidates(
+    game: Game, pool: list[Topic], category: Optional[str], count: int = SECOND_QUESTION_CHOICES
+) -> list[Topic]:
     exclude_ids = set(game.used_topic_ids)
     candidates = [
         t for t in pool if (category is None or t.category == category) and t.id not in exclude_ids
@@ -193,7 +196,9 @@ def _finish_choosing(game: Game) -> None:
     game.choosing_slot = None
     game.choosing_candidates = []
     game.choosing_deadline = 0
-    game.status = GameStatus.ACTIVE
+    # This only ever runs between rounds now (the pick determines the
+    # UPCOMING round's topic), so the round being wrapped up stays over.
+    game.status = GameStatus.ROUND_END
 
 
 def choose_second_topic(game: Game, slot: PlayerSlot, topic_id: str) -> None:
@@ -238,10 +243,10 @@ def timeout_choosing_second(game: Game) -> None:
     _finish_choosing(game)
 
 
-def draw_second_topic_random(game: Game, pool: list[Topic]) -> Optional[Topic]:
+def draw_second_topic_random(game: Game, pool: list[Topic], category: Optional[str]) -> Optional[Topic]:
     """For rounds with no designated chooser (e.g. the fully-random round) —
-    a second question still appears, just picked immediately at random."""
-    category = game.category_for_round
+    the upcoming round's topic is still picked here, just at random instead
+    of by a debater."""
     exclude_ids = set(game.used_topic_ids)
     candidates = [
         t for t in pool if (category is None or t.category == category) and t.id not in exclude_ids

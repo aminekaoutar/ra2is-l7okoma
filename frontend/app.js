@@ -841,7 +841,7 @@
       });
     } else {
       const chooserName = state[state.choosing_slot].name;
-      $("chooseWaitingText").textContent = `${chooserName} كيختار ولا كيكتب السؤال الثاني...`;
+      $("chooseWaitingText").textContent = `${chooserName} كيختار ولا كيكتب سؤال الجولة الجاية...`;
     }
   }
 

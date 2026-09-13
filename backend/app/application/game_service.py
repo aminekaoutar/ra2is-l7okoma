@@ -4,7 +4,7 @@ import time
 from typing import Optional
 
 from ..domain import rules
-from ..domain.enums import CardType, GameMode, GameStatus, PhaseType, PlayerSlot, RoundWinner
+from ..domain.enums import CardType, GameMode, GameStatus, PlayerSlot, RoundWinner
 from ..domain.models import Game
 from ..domain.rules import DomainError
 from .ports import Broadcaster, GameRepository, TopicRepository
@@ -70,43 +70,51 @@ class GameService:
         return self.topics.categories()
 
     def _setup_round_questions(self, game: Game) -> None:
-        """Matched (peer-to-peer) games have no moderator to click 'draw topic' —
-        each round's category was already fixed at match time, so pull the
-        first question the moment the round begins. The second question is
-        deliberately NOT touched here — showing both at once confused
-        people, so it's revealed later, right as the round moves into its
-        closing phase (see _maybe_reveal_second_question)."""
+        """Matched (peer-to-peer) games have no moderator to click 'draw topic'.
+        Round 1 pulls its question the moment the round begins. Every round
+        after that already had its specific question picked at the END of
+        the PREVIOUS round (see _maybe_reveal_second_question) and handed
+        over here via second_topic — only fall back to drawing fresh if
+        that never happened for some reason."""
         if game.mode != GameMode.MATCHED:
             return
-        if game.current_topic is None:
+        if game.current_topic is not None:
+            return
+        if game.second_topic is not None:
+            game.current_topic = game.second_topic
+            game.second_topic = None
+            game.add_log(f"السؤال: [{game.current_topic.category}] {game.current_topic.question}")
+        else:
             topic = rules.draw_topic(game, self.topics.all(), game.category_for_round)
             game.add_log(f"السؤال: [{topic.category}] {topic.question}")
 
     def _maybe_reveal_second_question(self, game: Game) -> None:
-        """Called after any action that might have just moved the round into
-        its closing phase. Only fires once per round: opens the 60s
-        pick/write window for the round's designated chooser, or — for the
-        fully-random round with no chooser — draws the second question
-        immediately at random."""
+        """Called after any action that might have just ended a round. The
+        NEXT round's specific question is picked here — by whichever debater
+        that round's topic belongs to — once the just-finished round is
+        fully over, so only one question is ever on screen at a time
+        (never a second one appearing mid-round alongside the first)."""
         if game.mode != GameMode.MATCHED:
             return
-        if game.phase != PhaseType.CLOSING:
-            return
-        if game.status != GameStatus.ACTIVE:
+        if game.status != GameStatus.ROUND_END:
             return
         if game.second_topic is not None or game.choosing_slot is not None:
             return
+        if game.round_no >= game.total_rounds:
+            return  # last round -- there's no round after it to hand a topic to
 
-        idx = game.round_no - 1
+        idx = game.round_no  # round_categories/chooser_for_round are 0-indexed; this is the NEXT round
+        next_category = game.round_categories[idx] if idx < len(game.round_categories) else None
         chooser = game.chooser_for_round[idx] if idx < len(game.chooser_for_round) else None
+
         if chooser is not None:
-            candidates = rules.pick_second_candidates(game, self.topics.all())
+            candidates = rules.pick_second_candidates(game, self.topics.all(), next_category)
             rules.begin_choosing_second(game, chooser, candidates)
-            game.add_log(f"⏳ {game.player(chooser).name} خاصو يختار ولا يكتب السؤال الثاني — 60 ثانية")
+            game.add_log(f"⏳ {game.player(chooser).name} خاصو يختار ولا يكتب سؤال الجولة الجاية — 60 ثانية")
         else:
-            topic2 = rules.draw_second_topic_random(game, self.topics.all())
+            topic2 = rules.draw_second_topic_random(game, self.topics.all(), next_category)
             if topic2:
-                game.add_log(f"السؤال الثاني: [{topic2.category}] {topic2.question}")
+                game.add_log(f"سؤال الجولة الجاية: [{topic2.category}] {topic2.question}")
 
     async def start_game(self, game_id: str) -> dict:
         game = self._get(game_id)
