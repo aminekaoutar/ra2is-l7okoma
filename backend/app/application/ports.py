@@ -21,6 +21,9 @@ class GameRepository(ABC):
     def all_active_ids(self) -> list[str]: ...
 
     @abstractmethod
+    def all_games(self) -> list[Game]: ...
+
+    @abstractmethod
     def delete(self, game_id: str) -> None: ...
 
 

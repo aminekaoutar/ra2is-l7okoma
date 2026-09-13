@@ -69,6 +69,30 @@ class GameService:
     def categories(self) -> list[str]:
         return self.topics.categories()
 
+    def list_watchable_games(self) -> list[dict]:
+        """For spectators who don't have a share link -- every currently
+        matched (peer-to-peer) game, live ones surfaced first."""
+        order = {
+            GameStatus.ACTIVE: 0,
+            GameStatus.CHOOSING_SECOND: 0,
+            GameStatus.ROUND_END: 0,
+            GameStatus.SETUP: 1,
+            GameStatus.FINISHED: 2,
+        }
+        games = [g for g in self.repo.all_games() if g.mode == GameMode.MATCHED]
+        games.sort(key=lambda g: order.get(g.status, 1))
+        return [
+            {
+                "id": g.id,
+                "player1": g.player1.name,
+                "player2": g.player2.name,
+                "status": g.status.value,
+                "round_no": g.round_no,
+                "total_rounds": g.total_rounds,
+            }
+            for g in games
+        ]
+
     def _setup_round_questions(self, game: Game) -> None:
         """Matched (peer-to-peer) games have no moderator to click 'draw topic'.
         Round 1 pulls its question the moment the round begins. Every round

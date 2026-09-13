@@ -89,8 +89,73 @@
   }
 
   function showScreen(id) {
-    ["screen-lobby", "screen-waiting", "screen-game", "screen-audience-name"].forEach((s) => ($(s).hidden = s !== id));
+    ["screen-lobby", "screen-waiting", "screen-game", "screen-audience-name", "screen-watch-browse"].forEach(
+      (s) => ($(s).hidden = s !== id)
+    );
   }
+
+  // -------------------------------------------------- watch without a link
+
+  const LIVE_STATUS_LABEL = {
+    setup: "كتستناو",
+    active: "كتهضر دابا",
+    choosing_second: "كتهضر دابا",
+    round_end: "كتهضر دابا",
+    finished: "خلصات",
+  };
+
+  let watchBrowseRefreshTimer = null;
+
+  async function fetchAndRenderLiveGames() {
+    const list = $("liveGamesList");
+    const empty = $("liveGamesEmpty");
+    try {
+      const res = await fetch("/api/games/live");
+      const data = await res.json();
+      const games = data.games || [];
+      empty.hidden = games.length > 0;
+      empty.textContent = "ماكاين حتى مناظرة دابا... جرب من بعد شوية.";
+      list.innerHTML = "";
+      games.forEach((g) => {
+        const card = document.createElement("div");
+        card.className = "live-game-card";
+        const statusCls = g.status === "finished" ? "is-done" : g.status === "setup" ? "" : "is-live";
+        card.innerHTML = `
+          <div>
+            <div class="live-game-names">${g.player1} 🆚 ${g.player2}</div>
+            <div class="live-game-meta">
+              <span class="live-game-status ${statusCls}">${LIVE_STATUS_LABEL[g.status] || g.status}</span>
+              <span class="live-game-round">الجولة ${g.round_no}/${g.total_rounds}</span>
+            </div>
+          </div>
+        `;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "live-game-watch-btn";
+        btn.textContent = "تفرج";
+        btn.addEventListener("click", () => {
+          location.href = `/watch/${g.id}`;
+        });
+        card.appendChild(btn);
+        list.appendChild(card);
+      });
+    } catch (e) {
+      empty.hidden = false;
+      empty.textContent = "ماقدرناش نجيبو اللائحة، عاود المحاولة.";
+    }
+  }
+
+  $("openWatchBrowseBtn").addEventListener("click", () => {
+    showScreen("screen-watch-browse");
+    fetchAndRenderLiveGames();
+    clearInterval(watchBrowseRefreshTimer);
+    watchBrowseRefreshTimer = setInterval(fetchAndRenderLiveGames, 4000);
+  });
+  $("refreshWatchBrowseBtn").addEventListener("click", fetchAndRenderLiveGames);
+  $("backToLobbyFromBrowseBtn").addEventListener("click", () => {
+    clearInterval(watchBrowseRefreshTimer);
+    showScreen("screen-lobby");
+  });
 
   function sendGame(action, extra) {
     if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;

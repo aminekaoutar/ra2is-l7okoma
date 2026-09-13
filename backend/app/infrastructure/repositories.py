@@ -37,6 +37,10 @@ class InMemoryGameRepository(GameRepository):
                 if g.status in (GameStatus.ACTIVE, GameStatus.CHOOSING_SECOND)
             ]
 
+    def all_games(self) -> list[Game]:
+        with self._lock:
+            return list(self._games.values())
+
     def delete(self, game_id: str) -> None:
         with self._lock:
             self._games.pop(game_id, None)

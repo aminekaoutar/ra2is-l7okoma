@@ -29,6 +29,12 @@ def build_router(service: GameService, connections: ConnectionManager) -> APIRou
         game = service.create_game(req.name1, req.name2, req.total_rounds)
         return {"game_id": game.id}
 
+    # Must be registered before /api/games/{game_id} -- that path param
+    # would otherwise swallow "live" as if it were a game id.
+    @router.get("/api/games/live")
+    def list_live_games():
+        return {"games": service.list_watchable_games()}
+
     @router.get("/api/games/{game_id}")
     def get_game(game_id: str):
         try:

@@ -39,6 +39,32 @@
 
     <button id="joinLobbyBtn" class="btn-start" disabled>دخول للصالة</button>
     <p class="setup-error" id="setupError" hidden></p>
+
+    <button type="button" id="openWatchBrowseBtn" class="btn-secondary" style="width:100%; margin-top:14px; padding:12px; border-radius:24px; font-weight:800; cursor:pointer;">
+      👀 ماعندكش رابط؟ تفرج على مناظرة كاينة دابا
+    </button>
+  </div>
+</section>
+
+<!-- ================= WATCH BROWSE (no link) ================= -->
+<section id="screen-watch-browse" class="screen" hidden>
+  <div class="setup-card">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 100 100" width="52" height="52" aria-hidden="true">
+          <circle cx="50" cy="50" r="47" fill="#C1272D" stroke="#FFFFFF" stroke-width="5"/>
+          <path fill="#04593B" d="M50 18 L57.64 39.48 L80.44 40.11 L62.36 54.02 L68.81 75.89 L50 63 L31.19 75.89 L37.64 54.02 L19.56 40.11 L42.36 39.48 Z"/>
+        </svg>
+      </div>
+      <h1 class="display">مناظرات كاينة دابا</h1>
+      <p class="tagline">ختار وحدة باش تتفرج عليها</p>
+    </div>
+
+    <div id="liveGamesList" class="live-games-list"></div>
+    <p id="liveGamesEmpty" class="field-hint" hidden>ماكاين حتى مناظرة دابا... جرب من بعد شوية.</p>
+
+    <button type="button" id="refreshWatchBrowseBtn" class="btn-secondary" style="width:100%; margin-top:14px; padding:12px; border-radius:24px; font-weight:800; cursor:pointer;">🔄 حدّث اللائحة</button>
+    <button type="button" id="backToLobbyFromBrowseBtn" class="btn-ghost" style="width:100%; margin-top:8px; padding:12px; border-radius:24px; font-weight:800; cursor:pointer;">رجوع</button>
   </div>
 </section>
 
